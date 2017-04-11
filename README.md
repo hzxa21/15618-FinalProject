@@ -1,4 +1,4 @@
-## Parallel lossless data compression algorithms
+## Parallel Lossless Data Compression Algorithms
 Team Member: Zhanxiang Huang (<zhanxiah@andrew.cmu.edu>), Chen Luo (<cluo1@andrew.cmu.edu>)
 
 ### Summary
