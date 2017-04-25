@@ -33,11 +33,13 @@
 /***************************************************************************
 *                             INCLUDED FILES
 ***************************************************************************/
+#include "lzss.h"
 #include <stdio.h>
 #include <string.h>
 #include <errno.h>
 #include "lzlocal.h"
 #include "bitfile.h"
+#include "CycleTimer.h"
 
 /***************************************************************************
 *                            TYPE DEFINITIONS
@@ -53,6 +55,11 @@
 /* cyclic buffer sliding window of already read characters */
 unsigned char slidingWindow[WINDOW_SIZE];
 unsigned char uncodedLookahead[MAX_CODED];
+
+/***************************************************************************
+*                               Statistics
+***************************************************************************/
+double encoding_times[3];
 
 /***************************************************************************
 *                               PROTOTYPES
@@ -140,6 +147,8 @@ int EncodeLZSS(FILE *fpIn, FILE *fpOut)
     /* now encoded the rest of the file until an EOF is read */
     while (len > 0)
     {
+        double t1 = CycleTimer::currentSeconds();
+        
         if (matchData.length > len)
         {
             /* garbage beyond last data happened to extend match length */
@@ -169,6 +178,8 @@ int EncodeLZSS(FILE *fpIn, FILE *fpOut)
                 sizeof(unsigned int));
         }
 
+        double t2 = CycleTimer::currentSeconds();
+        
         /********************************************************************
         * Replace the matchData.length worth of bytes we've matched in the
         * sliding window with new bytes from the input file.
@@ -194,9 +205,18 @@ int EncodeLZSS(FILE *fpIn, FILE *fpOut)
             len--;
             i++;
         }
-
+        
+        double t3 = CycleTimer::currentSeconds();
+        
         /* find match for the remaining characters */
         matchData = FindMatch(windowHead, uncodedHead);
+        
+        double t4 = CycleTimer::currentSeconds();
+        
+        // Update Statistics
+        encoding_times[0] += t4 - t3;
+        encoding_times[1] += t2 - t1;
+        encoding_times[2] += t3 - t2;
     }
 
     /* we've encoded everything, free bitfile structure */

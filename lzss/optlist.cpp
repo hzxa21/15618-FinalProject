@@ -56,7 +56,7 @@ static option_t *MakeOpt(
     const char option, char *const argument, const int index);
 
 static size_t MatchOpt(
-    const char argument, char *const options);
+    const char argument, const char * options);
 
 /***************************************************************************
 *                                FUNCTIONS
@@ -88,7 +88,7 @@ static size_t MatchOpt(
 *   NOTE: The caller is responsible for freeing up the option list when it
 *         is no longer needed.
 ****************************************************************************/
-option_t *GetOptList(const int argc, char *const argv[], char *const options)
+option_t *GetOptList(const int argc, char *const argv[], const char *options)
 {
     int nextArg;
     option_t *head, *tail;
@@ -175,7 +175,7 @@ static option_t *MakeOpt(
 {
     option_t *opt;
 
-    opt = malloc(sizeof(option_t));
+    opt = (option_t*)malloc(sizeof(option_t));
 
     if (opt != NULL)
     {
@@ -235,7 +235,7 @@ void FreeOptList(option_t *list)
 *                if arguement does not appear in the option list.
 ****************************************************************************/
 static size_t MatchOpt(
-    const char argument, char *const options)
+    const char argument, const char * options)
 {
     size_t optIndex = 0;
 

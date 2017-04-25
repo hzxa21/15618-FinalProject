@@ -47,21 +47,7 @@ typedef enum
     DECODE
 } modes_t;
 
-/***************************************************************************
-*                                CONSTANTS
-***************************************************************************/
 
-/***************************************************************************
-*                            GLOBAL VARIABLES
-***************************************************************************/
-
-/***************************************************************************
-*                               PROTOTYPES
-***************************************************************************/
-
-/***************************************************************************
-*                                FUNCTIONS
-***************************************************************************/
 
 /****************************************************************************
 *   Function   : main
@@ -198,6 +184,9 @@ int main(int argc, char *argv[])
         fpOut = stdout;
     }
 
+    // Initialize the timer
+    memset(encoding_times, 0, 3 * sizeof(double));
+  
     /* we have valid parameters encode or decode */
     if (mode == ENCODE)
     {
@@ -207,6 +196,21 @@ int main(int argc, char *argv[])
     {
         DecodeLZSS(fpIn, fpOut);
     }
+
+    // Print out statistics
+    // Encoding is divided into three main steps. First the lookahead buffer
+    // is compared against the sliding window. Secondly, the encoding offset +
+    // length is written to the file. Thirdly, the matching bytes are moved from
+    // lookahead buffer to the sliding window. Also, more characters are read
+    // from disk to fill the lookahead buffer
+    fprintf(stdout, "********* Encoding Statistics **********\n");
+    fprintf(stdout, "Step 1 (find string match) takes %f seconds\n",
+            encoding_times[0]);
+    fprintf(stdout, "Step 2 (write encoded str to file) takes %f seconds\n",
+            encoding_times[1]);
+    fprintf(stdout, "Step 3 (Update sliding window and read more chars) takes"
+            " %f seconds\n", encoding_times[2]);
+    
 
     /* remember to close files */
     fclose(fpIn);

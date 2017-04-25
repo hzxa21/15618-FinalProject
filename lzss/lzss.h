@@ -33,9 +33,12 @@
 #ifndef _LZSS_H
 #define _LZSS_H
 
+#include <stdio.h>
 /***************************************************************************
 *                               PROTOTYPES
 ***************************************************************************/
+
+extern double encoding_times[3];
 
 /***************************************************************************
 * LZSS encoding and decoding prototypes for functions with file pointer
