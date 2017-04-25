@@ -1,0 +1,4 @@
+huffman/cmake-build-*
+huffman/cmake-build-*/*
+huffman/.idea/
+huffman/.idea/*
