@@ -1,10 +1,10 @@
 ############################################################################
 # Makefile for lzss encode/decode library and sample program
 ############################################################################
-CC = gcc
-LD = gcc
-CFLAGS = -I. -O3 -Wall -Wextra -pedantic -ansi -c
-LDFLAGS = -O3 -o
+CC = g++
+LD = g++
+CFLAGS = -I. -O3 -std=c++11 -Wall -Wextra 
+LDFLAGS = -O3
 
 # libraries
 LIBS = -L. -llzss -loptlist
@@ -47,43 +47,43 @@ LZOBJS = $(FMOBJ) lzss.o
 
 all:		sample$(EXE) liblzss.a liboptlist.a
 
-sample$(EXE):	sample.o liblzss.a liboptlist.a
-		$(LD) $< $(LIBS) $(LDFLAGS) $@
+sample$(EXE):   sample.o liblzss.a liboptlist.a
+		$(LD) $< $(LIBS) $(LDFLAGS) -o $@
 
-sample.o:	sample.c lzss.h optlist.h
-		$(CC) $(CFLAGS) $<
+sample.o:	sample.cpp lzss.h optlist.h
+	        $(CC) $(CFLAGS) $< -c -o $@
 
 liblzss.a:	$(LZOBJS) bitfile.o
 		ar crv liblzss.a $(LZOBJS) bitfile.o
 		ranlib liblzss.a
 
-lzss.o:	lzss.c lzlocal.h bitfile.h
-		$(CC) $(CFLAGS) $<
+lzss.o:	lzss.cpp lzlocal.h bitfile.h
+		$(CC) $(CFLAGS) $< -c -o $@
 
-brute.o:	brute.c lzlocal.h
-		$(CC) $(CFLAGS) $<
+brute.o:	brute.cpp lzlocal.h
+		$(CC) $(CFLAGS) $< -c -o $@
 
-list.o:		list.c lzlocal.h
-		$(CC) $(CFLAGS) $<
+list.o:		list.cpp lzlocal.h
+		$(CC) $(CFLAGS) $< -c -o $@
 
-hash.o:		hash.c lzlocal.h
-		$(CC) $(CFLAGS) $<
+hash.o:		hash.cpp lzlocal.h
+		$(CC) $(CFLAGS) $< -c -o $@
 
-kmp.o:		kmp.c lzlocal.h
-		$(CC) $(CFLAGS) $<
+kmp.o:		kmp.cpp lzlocal.h
+		$(CC) $(CFLAGS) $< -c -o $@
 
-tree.o:		tree.c lzlocal.h
-		$(CC) $(CFLAGS) $<
+tree.o:		tree.cpp lzlocal.h
+		$(CC) $(CFLAGS) $< -c -o $@
 
-bitfile.o:	bitfile.c bitfile.h
-		$(CC) $(CFLAGS) $<
+bitfile.o:	bitfile.cpp bitfile.h
+		$(CC) $(CFLAGS) $< -c -o $@
 
 liboptlist.a:	optlist.o
 		ar crv liboptlist.a optlist.o
 		ranlib liboptlist.a
 
-optlist.o:	optlist.c optlist.h
-		$(CC) $(CFLAGS) $<
+optlist.o:	optlist.cpp optlist.h
+		$(CC) $(CFLAGS) $< -c -o $@
 
 clean:
 		$(DEL) *.o
