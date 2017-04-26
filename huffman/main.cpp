@@ -10,9 +10,12 @@
 #include <algorithm>
 #include <fstream>
 #include <assert.h>
+#include "CycleTimer.h"
 
 #define MAX_BIN 256
-#define DEBUG
+//#define DEBUG
+//#define READ_FILE
+//#define WRITE_FILE
 
 
 unsigned char one[8]
@@ -57,12 +60,14 @@ class HuffmanTree {
   HuffmanNode* nodeMap[MAX_BIN];
   HuffmanNode** symbolList;
   unsigned symbolCnt;
-  unsigned char* data;
-  size_t dataSize;
+  void* data;
+  void* outData;
 
   HuffmanCode* codeMap[MAX_BIN];
 
  public:
+  size_t dataSize;
+
   HuffmanTree() {
     symbolCnt = 0;
     memset(nodeMap, 0, sizeof(nodeMap));
@@ -70,25 +75,37 @@ class HuffmanTree {
 
   }
 
-  ~HuffmanTree() {
+  void Reset() {
     munmap(data, dataSize);
     for (int i=0; i<symbolCnt; i++)
       delete nodeMap[i];
     delete[] symbolList;
   }
 
-  void GenerateHistogram(std::string fileName) {
-    int fd = open(fileName.c_str(), O_RDONLY);
+  ~HuffmanTree() {
+    Reset();
+  }
 
-    // mmap input file
+  void ReadFileToBuffer(std::string fileName) {
     struct stat sbuf;
     stat(fileName.c_str(), &sbuf);
     dataSize = sbuf.st_size;
-    data = (unsigned char*)mmap(NULL, dataSize, PROT_READ,  MAP_SHARED, fd, 0);
 
+#ifdef READ_FILE
+    data = mmap(NULL, dataSize, PROT_READ,  MAP_SHARED, fd, 0);
+#else
+    data = new char[dataSize];
+    outData = new char[dataSize];
+    FILE * filp = fopen(fileName.c_str(), "rb");
+    fread(data, sizeof(char), dataSize, filp);
+    fclose(filp);
+#endif
+  }
+
+  void GenerateHistogram(std::string fileName) {
     // Update frequency for each node
     for (int i = 0; i<dataSize; i++) {
-      unsigned char symbol = data[i];
+      unsigned char symbol = ((unsigned char*)data)[i];
       if (!nodeMap[symbol]) {
         nodeMap[symbol] = new HuffmanNode(symbol);
         symbolCnt++;
@@ -137,7 +154,7 @@ class HuffmanTree {
     uint8_t numBits = 0;
     auto parent = node->parent;
     while (parent != nullptr) {
-      if (node->left)
+      if (!node->left)
         bits[numBits] = 1;
       node = parent;
       parent = node->parent;
@@ -165,20 +182,25 @@ class HuffmanTree {
     }
   }
 
-  void OutputCompressFile(std::string fileName) {
-    std::ofstream out;
-    out.open(fileName.c_str(), std::ios_base::binary | std::ios_base::out);
-    assert(out.is_open());
+  size_t OutputCompressFile(std::string fileName) {
+    size_t outputSize = 0;
 
+#ifdef WRITE_FILE
+    auto out = fopen(fileName.c_str(), "wb");
+#else
+    auto out = fmemopen(outData, dataSize, "wb");
+#endif
 
     // Output metadata
-    out.write((char*)&dataSize, sizeof(dataSize)); // File Length
-    out.write((char*)&symbolCnt, sizeof(symbolCnt)); // Symbol Cnt
+    fwrite(&dataSize, sizeof(dataSize), 1, out); // File Length
+    fwrite(&symbolCnt, sizeof(symbolCnt), 1, out); // Symbol Cnt
+    outputSize += sizeof(dataSize)+sizeof(symbolCnt);
     for (int i=0; i<symbolCnt; i++) {  // Symbol and number of bits
       auto symbol = symbolList[i]->symbol;
       auto code = codeMap[symbol];
-      out.write((char*)&symbol, 1); // Symbol
-      out.write((char*)&code->numBits, 1); // Bit cnt
+      fwrite(&symbol, 1, 1, out); // Symbol
+      fwrite(&code->numBits, 1, 1, out); // Bit cnt
+      outputSize+=2;
     }
 
     // Output code
@@ -192,7 +214,8 @@ class HuffmanTree {
 
         // Write out the byte when it is full
         if (++bitCnt == 8) {
-          out.write((char*)&curByte, 1); // Symbol
+          fwrite(&curByte, 1, 1, out); // Symbol
+          outputSize++;
           curByte = 0;
           bitCnt = 0;
         }
@@ -201,35 +224,78 @@ class HuffmanTree {
 
     // Compress file
     for (int i=0; i<dataSize; i++) {
-      auto code = codeMap[data[i]];
+      auto code = codeMap[((unsigned char*)data)[i]];
       for (int j = 0; j < code->numBits; j++) {
         if (code->bits[j])
           curByte += one[bitCnt % 8];
 
         // Write out the byte when it is full
         if (++bitCnt == 8) {
-          out.write((char *) &curByte, 1); // Symbol
+          fwrite(&curByte, 1, 1, out); // Symbol
+          outputSize++;
           curByte = 0;
           bitCnt = 0;
         }
       }
     }
 
-    if (bitCnt)
-      out.write((char *) &curByte, 1); // Symbol
+    if (bitCnt) {
+      fwrite(&curByte, 1, 1, out); // Symbol
+      outputSize++;
+    }
 
-    out.close();
+    fclose(out);
+    return outputSize;
+  }
+
+  void DecompressFile(std::string inFileName, std::string outFileName) {
+    int fd = open(inFileName.c_str(), O_RDONLY);
+
+    // mmap input file
+    struct stat sbuf;
+    stat(inFileName.c_str(), &sbuf);
+    dataSize = sbuf.st_size;
+    data = mmap(NULL, dataSize, PROT_READ,  MAP_SHARED, fd, 0);
+
+    size_t rawDataSize = ((size_t *)data)[0];
+    symbolCnt = ((unsigned*)data)[1];
+
   }
 
 };
 
 int main() {
+//  char filename[100] = "/home/patrick/pagecounts-20160501-000000";
+
   char filename[100] = "../raw_input";
   HuffmanTree tree;
+
+  tree.ReadFileToBuffer(filename);
+
+  auto startTime = CycleTimer::currentSeconds();
   tree.GenerateHistogram(std::string(filename));
+  auto endTime1 = CycleTimer::currentSeconds();
+  std::cout << "Gen Histogram Elapse time = " << endTime1 - startTime << std::endl;
+
+
   tree.BuildHuffmanTree();
+  auto endTime2 = CycleTimer::currentSeconds();
+  std::cout << "Build Tree Elapse time = " << endTime2 - endTime1 << std::endl;
+
+
   tree.ConstructHuffmanCode();
-  tree.OutputCompressFile("../test_output");
+  auto endTime3 = CycleTimer::currentSeconds();
+  std::cout << "Construct Code Elapse time = " << endTime3 - endTime2 << std::endl;
+
+
+  auto outputSize = tree.OutputCompressFile("../test_output");
+  auto endTime4 = CycleTimer::currentSeconds();
+  std::cout << "Compress File Elapse time = " << endTime4 - endTime3 << std::endl;
+
+
+  std::cout << "Total Elapse time = " << endTime4 - startTime << std::endl;
+  std::cout << "Compression Ratio = " << outputSize*1.0/tree.dataSize << std::endl;
+//  tree.DecompressFile("../test_output", "../decompress_output");
 
   return 0;
 }
