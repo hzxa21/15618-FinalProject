@@ -3,7 +3,9 @@
 ############################################################################
 CC = g++
 LD = g++
-CFLAGS = -I. -O3 -std=c++11 -Wall -Wextra 
+DFLAGS = -g -O0 -ggdb
+PFLAGS = -O3
+CFLAGS = -I. $(PFLAGS)  -std=c++11 -Wall -Wextra 
 LDFLAGS = -O3
 
 # libraries
@@ -43,14 +45,14 @@ endif
 # binary tree
 FMOBJ = tree.o
 
-LZOBJS = $(FMOBJ) lzss.o
+LZOBJS = $(FMOBJ) lzss.o file_buffer.o
 
-all:		sample$(EXE) liblzss.a liboptlist.a
+all:		lzss$(EXE) liblzss.a liboptlist.a
 
-sample$(EXE):   sample.o liblzss.a liboptlist.a
+lzss$(EXE):   main.o liblzss.a liboptlist.a
 		$(LD) $< $(LIBS) $(LDFLAGS) -o $@
 
-sample.o:	sample.cpp lzss.h optlist.h
+main.o:	main.cpp lzss.h optlist.h
 	        $(CC) $(CFLAGS) $< -c -o $@
 
 liblzss.a:	$(LZOBJS) bitfile.o
@@ -64,6 +66,9 @@ brute.o:	brute.cpp lzlocal.h
 		$(CC) $(CFLAGS) $< -c -o $@
 
 list.o:		list.cpp lzlocal.h
+		$(CC) $(CFLAGS) $< -c -o $@
+
+file_buffer.o:	file_buffer.cpp file_buffer.h
 		$(CC) $(CFLAGS) $< -c -o $@
 
 hash.o:		hash.cpp lzlocal.h
@@ -88,4 +93,4 @@ optlist.o:	optlist.cpp optlist.h
 clean:
 		$(DEL) *.o
 		$(DEL) *.a
-		$(DEL) sample$(EXE)
+		$(DEL) lzss$(EXE)
