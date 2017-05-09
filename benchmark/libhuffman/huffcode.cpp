@@ -21,7 +21,7 @@ extern char* optarg;
 #endif
 
 //#define READ_FILE
-//#define WRITE_FILE
+#define WRITE_FILE
 
 static int memory_encode_file(FILE *in, FILE *out);
 static int memory_decode_file(FILE *in, FILE *out);

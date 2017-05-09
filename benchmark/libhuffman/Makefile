@@ -1,24 +1,41 @@
-# To build with a specific architecture, set the ARCH flag on the make command line like this:
-# make ARCH=i386
-# or
-# make ARCH=x86_64
+CXX=g++ -m64
+CXXFLAGS=-I../common -Iobjs/ -O3 -std=c++11 -fopenmp
+ISPC=ispc
+# note: change target to avx-x2 for AVX capable machines
+ISPCFLAGS=-O2 --target=sse4-x2 --arch=x86-64
 
-CFLAGS=-g -Wall -Werror
+APP_NAME=huffman
+OBJDIR=objs
+COMMONDIR=common
 
-ifdef ARCH
-LDFLAGS+=-arch ${ARCH}
-CFLAGS+=-arch ${ARCH}
-endif
 
-all: huffcode libhuffman.a
+TASKSYS_CXX=$(COMMONDIR)/tasksys.cpp
+TASKSYS_LIB=-lpthread
+TASKSYS_OBJ=$(addprefix $(OBJDIR)/, $(subst $(COMMONDIR)/,, $(TASKSYS_CXX:.cpp=.o)))
 
-huffcode: huffcode.o libhuffman.a
-	$(CC) $(LDFLAGS) -o $@ huffcode.o libhuffman.a
+default: $(APP_NAME)
 
-huffman.o: huffman.h
+.PHONY: dirs clean
 
-libhuffman.a: huffman.o
-	$(AR) r $@ $<
+dirs:
+		/bin/mkdir -p $(OBJDIR)/
 
 clean:
-	$(RM) *.o *~ core huffcode huffcode.exe libhuffman.a
+		/bin/rm -rf $(OBJDIR) *~ $(APP_NAME) *_output *.o
+
+OBJS=$(OBJDIR)/huffcode.o $(OBJDIR)/huffman.o $(OBJDIR)/test_ispc.o $(TASKSYS_OBJ)
+
+$(APP_NAME): dirs $(OBJS)
+		$(CXX) $(CXXFLAGS) -o $@ $(OBJS) -lm $(TASKSYS_LIB)
+
+$(OBJDIR)/%.o: %.cpp
+		$(CXX) $< $(CXXFLAGS) -c -o $@
+
+$(OBJDIR)/%.o: $(COMMONDIR)/%.cpp
+	$(CXX) $< $(CXXFLAGS) -c -o $@
+
+$(OBJDIR)/huffcode.o: huffman.h $(OBJDIR)/test_ispc.h $(COMMONDIR)/CycleTimer.h
+
+$(OBJDIR)/%_ispc.h $(OBJDIR)//%_ispc.o: %.ispc
+		$(ISPC) $(ISPCFLAGS) $< -o $(OBJDIR)/$*_ispc.o -h $(OBJDIR)/$*_ispc.h
+
