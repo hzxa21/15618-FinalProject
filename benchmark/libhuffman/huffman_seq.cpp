@@ -963,7 +963,7 @@ int huffman_decode_memory(const unsigned char *bufin,
 
 
 
-/************* New *****************/
+/*************************** New Added (Sequential) *******************************/
 static unsigned int
 get_symbol_frequencies(SymbolFrequencies *pSF, data_buf& buf) {
   int c;
@@ -1192,7 +1192,10 @@ huffman_encode(const char *file_in, const char* file_out) {
     void* out_data = malloc(out_size);
     auto out_data_buf = data_buf(out_data, out_size);
     rc = do_encode(in_data_buf, out_data_buf, se);
+    auto endTime5 = CycleTimer::currentSeconds();
     write(out_fd, out_data, out_size);
+    std::cout << "Write Elapse time = " << CycleTimer::currentSeconds() - endTime5 << std::endl;
+
   }
 
   close(out_fd);

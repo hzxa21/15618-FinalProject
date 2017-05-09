@@ -43,6 +43,11 @@ struct data_buf {
   size_t size;
 };
 
+
+#define MAX_SYMBOLS 256
+typedef huffman_node *SymbolFrequencies[MAX_SYMBOLS];
+typedef huffman_code *SymbolEncoder[MAX_SYMBOLS];
+
 int huffman_encode_file(FILE *in, FILE *out);
 int huffman_decode_file(FILE *in, FILE *out);
 int huffman_encode_memory(const unsigned char *bufin,
