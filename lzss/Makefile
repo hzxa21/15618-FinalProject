@@ -45,7 +45,7 @@ endif
 # binary tree
 FMOBJ = tree.o
 
-LZOBJS = $(FMOBJ) lzss.o file_buffer.o
+LZOBJS = $(FMOBJ) lzss.o
 
 all:		lzss$(EXE) liblzss.a liboptlist.a
 
@@ -66,9 +66,6 @@ brute.o:	brute.cpp lzlocal.h
 		$(CC) $(CFLAGS) $< -c -o $@
 
 list.o:		list.cpp lzlocal.h
-		$(CC) $(CFLAGS) $< -c -o $@
-
-file_buffer.o:	file_buffer.cpp file_buffer.h
 		$(CC) $(CFLAGS) $< -c -o $@
 
 hash.o:		hash.cpp lzlocal.h

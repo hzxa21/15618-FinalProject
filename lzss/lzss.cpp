@@ -40,6 +40,7 @@
 #include "lzlocal.h"
 #include "bitfile.h"
 #include "CycleTimer.h"
+#include "file_buffer.h"
 
 /***************************************************************************
 *                            TYPE DEFINITIONS
@@ -87,6 +88,7 @@ int EncodeLZSS(FILE *fpIn, FILE *fpOut)
 {
     bit_file_t *bfpOut;
     encoded_string_t matchData;
+    FileBuffer file_buf(fpIn);
     int c;
     unsigned int i;
     unsigned int len;                       /* length of string */
@@ -124,7 +126,7 @@ int EncodeLZSS(FILE *fpIn, FILE *fpOut)
     * Copy MAX_CODED bytes from the input file into the uncoded lookahead
     * buffer.
     ************************************************************************/
-    for (len = 0; len < MAX_CODED && (c = getc(fpIn)) != EOF; len++)
+    for (len = 0; len < MAX_CODED && (c = file_buf.GetChar()) != EOF; len++)
     {
         uncodedLookahead[len] = c;
     }
@@ -185,7 +187,7 @@ int EncodeLZSS(FILE *fpIn, FILE *fpOut)
         * sliding window with new bytes from the input file.
         ********************************************************************/
         i = 0;
-        while ((i < matchData.length) && ((c = getc(fpIn)) != EOF))
+        while ((i < matchData.length) && ((c = file_buf.GetChar()) != EOF))
         {
             /* add old byte into sliding window and new into lookahead */
             ReplaceChar(windowHead, uncodedLookahead[uncodedHead]);
