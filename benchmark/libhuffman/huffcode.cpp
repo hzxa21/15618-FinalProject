@@ -53,9 +53,10 @@ main(int argc, char **argv) {
   const char *file_in = NULL, *file_out = NULL;
   FILE *in = stdin;
   FILE *out = stdout;
+  char new_flag = 0;
 
   /* Get the command line arguments. */
-  while ((opt = getopt(argc, argv, "i:o:cdhvm")) != -1) {
+  while ((opt = getopt(argc, argv, "i:o:cdhvmn")) != -1) {
     switch (opt) {
       case 'i': file_in = optarg;
         break;
@@ -70,6 +71,8 @@ main(int argc, char **argv) {
       case 'v': version(stdout);
         return 0;
       case 'm': memory = 1;
+        break;
+      case 'n':new_flag = 1;
         break;
       default: usage(stderr);
         return 1;
@@ -87,10 +90,10 @@ main(int argc, char **argv) {
 #ifdef READ_FILE
     in = fopen(file_in, "rb");
 #else
-    inbuf = new char[dataSize];
-    outbuf = new char[dataSize];
+    inbuf = new unsigned char[dataSize];
+    outbuf = new unsigned char[dataSize];
     FILE *filp = fopen(file_in, "rb");
-    fread(inbuf, sizeof(char), dataSize, filp);
+    fread(inbuf, sizeof(unsigned char), dataSize, filp);
     fclose(filp);
     in = fmemopen(inbuf, dataSize, "rb");
 #endif
@@ -122,6 +125,9 @@ main(int argc, char **argv) {
     return compress ?
            memory_encode_file(in, out) : memory_decode_file(in, out);
   }
+
+  if (new_flag)
+    return compress ? huffman_encode(file_in, file_out) : huffman_decode(file_in, file_out);
 
   return compress ?
          huffman_encode_file(in, out) : huffman_decode_file(in, out);
