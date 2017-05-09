@@ -39,11 +39,7 @@ class HuffmanNodeComp
 {
  public:
   bool operator() (const HuffmanNode* n1,const HuffmanNode* n2) const {
-    if (n1 == nullptr)
-      return false;
-    if (n2 == nullptr)
-      return true;
-    return n1->freq < n2->freq;
+    return n1->freq > n2->freq;
   }
 };
 
@@ -70,14 +66,16 @@ class HuffmanTree {
 
   HuffmanTree() {
     symbolCnt = 0;
-    memset(nodeMap, 0, sizeof(nodeMap));
+    for (size_t i = 0; i<MAX_BIN; i++) {
+      nodeMap[i] = new HuffmanNode((unsigned char)i);
+    }
     memset(codeMap, 0, sizeof(codeMap));
 
   }
 
   void Reset() {
     munmap(data, dataSize);
-    for (int i=0; i<symbolCnt; i++)
+    for (int i=0; i<MAX_BIN; i++)
       delete nodeMap[i];
     delete[] symbolList;
   }
@@ -106,16 +104,16 @@ class HuffmanTree {
     // Update frequency for each node
     for (int i = 0; i<dataSize; i++) {
       unsigned char symbol = ((unsigned char*)data)[i];
-      if (!nodeMap[symbol]) {
-        nodeMap[symbol] = new HuffmanNode(symbol);
-        symbolCnt++;
-      }
       nodeMap[symbol]->freq++;
     }
 
     // Sort to put valid symbols first
     std::sort(nodeMap, nodeMap+MAX_BIN, HuffmanNodeComp());
 
+    while (nodeMap[symbolCnt++]->freq!=0);
+    symbolCnt--;
+
+    std::cout<<"Symbol cnt="<<symbolCnt<<std::endl;
     // Store the original symbol list
     symbolList = new HuffmanNode*[symbolCnt];
     std::copy(nodeMap, nodeMap+symbolCnt, symbolList);
@@ -129,17 +127,17 @@ class HuffmanTree {
   }
 
   void BuildHuffmanTree() {
-    for (int i=0; i<symbolCnt-1; i++) {
-      auto first = nodeMap[0];
-      auto second = nodeMap[1];
-      nodeMap[0] =
+    for (int i=0, j=symbolCnt-1; i<symbolCnt-1; i++,j--) {
+      auto first = nodeMap[j];
+      auto second = nodeMap[j-1];
+      nodeMap[j-1] =
       first->parent =
       second->parent =
           new HuffmanNode(first->freq+second->freq);
       // Set the left flag to indicate it is the left child
       first->left = true;
-      nodeMap[1] = nullptr;
-      std::sort(nodeMap, nodeMap+MAX_BIN-i, HuffmanNodeComp());
+      nodeMap[j] = nullptr;
+      std::sort(nodeMap, nodeMap+symbolCnt-i-1, HuffmanNodeComp());
     }
 
 #ifdef DEBUG
@@ -267,11 +265,12 @@ class HuffmanTree {
 int main() {
 //  char filename[100] = "/home/patrick/pagecounts-20160501-000000";
 
-  char filename[100] = "../raw_input";
+  char filename[100] = "./raw_input";
   HuffmanTree tree;
 
+  std::cout << "Read file start" << std::endl;
   tree.ReadFileToBuffer(filename);
-
+  std::cout << "Gen Histogram Elapse start" << std::endl;
   auto startTime = CycleTimer::currentSeconds();
   tree.GenerateHistogram(std::string(filename));
   auto endTime1 = CycleTimer::currentSeconds();
@@ -288,7 +287,7 @@ int main() {
   std::cout << "Construct Code Elapse time = " << endTime3 - endTime2 << std::endl;
 
 
-  auto outputSize = tree.OutputCompressFile("../test_output");
+  auto outputSize = tree.OutputCompressFile("./test_output");
   auto endTime4 = CycleTimer::currentSeconds();
   std::cout << "Compress File Elapse time = " << endTime4 - endTime3 << std::endl;
 
