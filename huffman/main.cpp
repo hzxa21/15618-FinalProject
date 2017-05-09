@@ -107,7 +107,7 @@ class HuffmanTree {
       nodeMap[symbol]->freq++;
     }
 
-    // Sort to put valid symbols first
+    // Sort to put valid symbols first (largest to smallest)
     std::sort(nodeMap, nodeMap+MAX_BIN, HuffmanNodeComp());
 
     while (nodeMap[symbolCnt++]->freq!=0);
@@ -248,6 +248,8 @@ class HuffmanTree {
 
   void DecompressFile(std::string inFileName, std::string outFileName) {
     int fd = open(inFileName.c_str(), O_RDONLY);
+    HuffmanCode codeMap[MAX_BIN];
+
 
     // mmap input file
     struct stat sbuf;
@@ -257,6 +259,9 @@ class HuffmanTree {
 
     size_t rawDataSize = ((size_t *)data)[0];
     symbolCnt = ((unsigned*)data)[1];
+    for (int i=0; i<symbolCnt; i++) {
+
+    }
 
   }
 
