@@ -11,7 +11,7 @@
 #include <omp.h>
 #include "util.h"
 #include "huffman.h"
-
+#include <iostream>
 
 #ifdef WIN32
 #include <winsock2.h>
@@ -26,7 +26,9 @@
 #include <unistd.h>
 #endif
 
-#define NUM_CHUNKS 2
+using std::cout;
+using std::endl;
+using std::min;
 
 int compressed_chunk_start_offset[NUM_CHUNKS];
 
@@ -101,7 +103,7 @@ size_t get_out_size(data_buf& in_buf, SymbolEncoder *se) {
   int cnt = 0;
   omp_set_num_threads(NUM_CHUNKS);
   int bytes_in_chunks[NUM_CHUNKS];
-#pragma omp parallel
+  #pragma omp parallel
   {
     int tid = omp_get_thread_num();
     bytes_in_chunks[tid] = 0;
@@ -122,7 +124,6 @@ size_t get_out_size(data_buf& in_buf, SymbolEncoder *se) {
   for (int i = 0; i<NUM_CHUNKS-1; i++) {
     sum+=bytes_in_chunks[i];
     compressed_chunk_start_offset[i+1] = sum;
-    printf("[%d]: %d\n",i+1,sum);
   }
   res = NUM_CHUNKS*sizeof(int) + sum + bytes_in_chunks[NUM_CHUNKS-1];
 
@@ -144,39 +145,26 @@ size_t get_out_size(data_buf& in_buf, SymbolEncoder *se) {
 }
 
 
-static int
-do_encode(data_buf& in_buf, data_buf& out_buf, SymbolEncoder *se) {
-
-
-  printf("Start encoding, cur offset = %ld\n", out_buf.curr_offset);
+static int do_encode(data_buf& in_buf, data_buf& out_buf, SymbolEncoder *se) {
   omp_set_num_threads(NUM_CHUNKS);
-  int chunk_size = (in_buf.size+NUM_CHUNKS-1)/NUM_CHUNKS;
   #pragma omp parallel
   {
-    unsigned char curbyte = 0;
-    unsigned char curbit = 0;
     int tid = omp_get_thread_num();
-
     int start_offset = compressed_chunk_start_offset[tid];
+    // Write compressed chunk start offset to the output buffer
     ((int*)(out_buf.data+out_buf.curr_offset))[tid] = start_offset;
     start_offset+=NUM_CHUNKS*sizeof(int);
-    printf("[%d] Start offset = %d\n", tid, start_offset);
 
-    int i_offset = chunk_size*tid;
-    int e_offset = std::min(i_offset+chunk_size, (int)in_buf.size);
-    for (; i_offset < e_offset; i_offset++) {
-      unsigned char uc = in_buf.data[i_offset];
-      huffman_code *code = (*se)[uc];
-      unsigned long i;
-
-
-      for (i = 0; i < code->numbits; ++i) {
-        /* Add the current bit to curbyte. */
-
+    unsigned char curbyte = 0;
+    unsigned char curbit = 0;
+    #pragma omp for schedule(static) nowait
+    for (int i_offset = 0; i_offset < in_buf.size; i_offset++) {
+      huffman_code *code = (*se)[in_buf.data[i_offset]];
+      for (unsigned long i = 0; i < code->numbits; ++i) {
+        // Add the current bit to curbyte.
         curbyte |= get_bit(code->bits, i) << curbit;
 
-        /* If this byte is filled up then write it
-         * out and reset the curbit and curbyte. */
+        // If this byte is filled up then write it
         if (++curbit == 8) {
           (out_buf.data+out_buf.curr_offset)[start_offset++] = curbyte;
           curbyte = 0;
@@ -185,13 +173,9 @@ do_encode(data_buf& in_buf, data_buf& out_buf, SymbolEncoder *se) {
       }
     }
 
-
-    /*
-     * If there is data in curbyte that has not been
-     * output yet, which means that the last encoded
-     * character did not fall on a byte boundary,
-     * then output it.
-     */
+    // If there is data in curbyte that has not been output yet,
+    // which means that the last encoded character did not fall on a byte
+    // boundary, then output it.
     if (curbit > 0)
       (out_buf.data+out_buf.curr_offset)[start_offset] = curbyte;
   }
@@ -316,51 +300,34 @@ huffman_node * read_code_table_memory(data_buf& buf, unsigned int& num_bytes) {
   return root;
 }
 
-//int huffman_encode(const char *file_in, const char* file_out) {
 int huffman_encode_parallel(data_buf& in_data_buf, data_buf& out_data_buf) {
-  auto startTime = CycleTimer::currentSeconds();
+  c_time_p[0] = CycleTimer::currentSeconds();
+
+  // Get the frequency of each symbol in the input file.
   SymbolFrequencies sf;
-  huffman_node *root = NULL;
-  unsigned int symbol_count;
+  unsigned int symbol_count = get_symbol_frequencies(&sf, in_data_buf);
+  
+  c_time_p[1] = CycleTimer::currentSeconds();
 
-  printf("In size = %ld\n", in_data_buf.size);
-
-  /* Get the frequency of each symbol in the input file. */
-  symbol_count = get_symbol_frequencies(&sf, in_data_buf);
-  auto endTime1 = CycleTimer::currentSeconds();
-
-  /* Build an optimal table from the symbolCount. */
+  // Build an optimal table from the symbolCount.
   SymbolEncoder *se = calculate_huffman_codes(&sf);
-  auto endTime2 = CycleTimer::currentSeconds();
-
-  /* Get output buffer size */
   size_t out_size = get_out_size(in_data_buf, se);
-  auto endTime3 = CycleTimer::currentSeconds();
-  std::cout << "Out size = " << out_size << std::endl;
-
-  /* Allocate output buffer */
   out_data_buf.data = new unsigned char[out_size];
   out_data_buf.size = out_size;
   out_data_buf.curr_offset = 0;
-  auto endTime4 = CycleTimer::currentSeconds();
+  
+  c_time_p[2] = CycleTimer::currentSeconds();
 
-  /* Write code table */
+  // Write symbol table
   write_code_table_memory(out_data_buf, se, symbol_count);
-  auto endTime5 = CycleTimer::currentSeconds();
+  
+  c_time_p[3] = CycleTimer::currentSeconds();
 
-  /* Real encoding */
+  // Encode file
   do_encode(in_data_buf, out_data_buf, se);
-  auto endTime6 = CycleTimer::currentSeconds();
-
-  std::cout << "Gen Histogram Elapse time = " << endTime1 - startTime << std::endl;
-  std::cout << "Get Output Size Time = " << endTime3 - endTime2 << std::endl;
-  std::cout << "Allocate Output Buffer Time = " << endTime4 - endTime3 << std::endl;
-  std::cout << "Compress File time = " << endTime6 - endTime5 << std::endl;
-  std::cout << "Total Elapse time = " << endTime6 - startTime << std::endl;
-
-  printf("Compress Ratio = %f\n", out_size * 1.0 / in_data_buf.size);
-
-
+  
+  c_time_p[4] = CycleTimer::currentSeconds();
+  
   /* Free the Huffman tree. */
   free_huffman_tree(sf[0]);
   free_encoder(se);
@@ -370,11 +337,13 @@ int huffman_encode_parallel(data_buf& in_data_buf, data_buf& out_data_buf) {
 
 int
 huffman_decode_parallel(data_buf& in_data_buf, data_buf& out_data_buf) {
-  printf("Start decompress\n");
-
+  d_time_p[0] = CycleTimer::currentSeconds();
+  
   // Read the symbol list from input buffer and build Huffman Tree
   unsigned int data_count;
   huffman_node *root = read_code_table_memory(in_data_buf, data_count);
+  
+  d_time_p[1] = CycleTimer::currentSeconds();
 
   // Initialize output buffer
   out_data_buf.data = new unsigned char[data_count];
@@ -382,41 +351,22 @@ huffman_decode_parallel(data_buf& in_data_buf, data_buf& out_data_buf) {
   out_data_buf.curr_offset = 0;
 
   // Decode the file using Huffman Tree
-  huffman_node *p = root;
-  printf("In size = %ld\n", in_data_buf.size);
-
-  /* Decode the file. */
   in_data_buf.read_data(compressed_chunk_start_offset, NUM_CHUNKS*sizeof(int));
-  printf("Out size = %ld\n", data_count);
   int o_chunk_size = (data_count+NUM_CHUNKS-1)/NUM_CHUNKS;
   omp_set_num_threads(NUM_CHUNKS);
-#pragma omp parallel
+  #pragma omp parallel
   {
+    huffman_node *p = root;
     int tid = omp_get_thread_num();
-    printf("[%d] compressed_chunk_start_offset = %d\n", tid, compressed_chunk_start_offset[tid]);
-    int i_offset = compressed_chunk_start_offset[tid]+in_data_buf.curr_offset;
-    printf("[%d] Current offset = %d\n", tid, i_offset);
+    int i_offset = compressed_chunk_start_offset[tid] + in_data_buf.curr_offset;
 
     size_t o_start_offset = o_chunk_size * tid;
-    size_t o_end_offset = std::min(o_start_offset+o_chunk_size, (size_t)data_count);
-//    printf("[%d] o_start_offset = %d\n", tid, o_start_offset);
-//    printf("[%d] o_end_offset = %d\n", tid, o_end_offset);
-
+    size_t o_end_offset = min(o_start_offset+o_chunk_size, (size_t)data_count);
+    
     while (o_start_offset < o_end_offset) {
-      if (i_offset >= in_data_buf.size)
-        printf("[%d] Overflow in\n", tid);
       unsigned char byte = in_data_buf.data[i_offset++];
       unsigned char mask = 1;
       while (o_start_offset < o_end_offset && mask) {
-        if (o_start_offset >= data_count)
-          printf("[%d] Overflow out\n", tid);
-        if (byte & mask) {
-          if (!p->one)
-            printf("NULL at 1\n");
-        }
-        else if (!p->zero)
-          printf("NULL at 0\n");
-
         p = byte & mask ? p->one : p->zero;
         mask <<= 1;
 
@@ -427,9 +377,8 @@ huffman_decode_parallel(data_buf& in_data_buf, data_buf& out_data_buf) {
       }
     }
   }
-  printf("Finish decompress\n");
-
-
+  
+  d_time_p[2] = CycleTimer::currentSeconds();
 
   free_huffman_tree(root);
   return 0;
