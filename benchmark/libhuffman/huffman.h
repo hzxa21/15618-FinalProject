@@ -66,6 +66,10 @@ struct data_buf {
   unsigned int curr_offset;
 };
 
+enum parallel_type {
+  OPENMP_NAIVE = 0,
+  OPENMP_ParallelHistogram = 1,
+};
 
 #define MAX_SYMBOLS 256
 typedef huffman_node *SymbolFrequencies[MAX_SYMBOLS];
@@ -76,15 +80,14 @@ int huffman_encode_seq(data_buf& in_buf, data_buf& out_buf);
 int huffman_decode_seq(data_buf& in_buf, data_buf& out_buf);
 
 // Parallel Version
-#define NUM_CHUNKS 2
-int huffman_encode_parallel(data_buf& in_buf, data_buf& out_buf);
-int huffman_decode_parallel(data_buf& in_buf, data_buf& out_buf);
+#define NUM_CHUNKS 4
+int huffman_encode_parallel(data_buf& in_buf, data_buf& out_buf, parallel_type type);
+int huffman_decode_parallel(data_buf& in_buf, data_buf& out_buf, parallel_type type);
 
 // Time statistics
-extern double c_time_seq[5];
-extern double d_time_seq[3];
-extern double c_time_p[5];
-extern double d_time_p[3];
+extern double c_time[5];
+extern double d_time[3];
+
 
 
 #endif

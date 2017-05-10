@@ -223,13 +223,13 @@ static huffman_node * read_code_table_memory(data_buf& buf, unsigned int& num_by
 }
                      
 int huffman_encode_seq(data_buf& in_data_buf, data_buf& out_data_buf) {
-  c_time_seq[0] = CycleTimer::currentSeconds();
+  c_time[0] = CycleTimer::currentSeconds();
 
   // Get the frequency of each symbol in the input file.
   SymbolFrequencies sf;
   unsigned int symbol_count = get_symbol_frequencies(&sf, in_data_buf);
   
-  c_time_seq[1] = CycleTimer::currentSeconds();
+  c_time[1] = CycleTimer::currentSeconds();
   
   // Build an optimal table from the symbolCount.
   SymbolEncoder *se = calculate_huffman_codes(&sf);
@@ -238,12 +238,12 @@ int huffman_encode_seq(data_buf& in_data_buf, data_buf& out_data_buf) {
   out_data_buf.size = out_size;
   out_data_buf.curr_offset = 0;
   
-  c_time_seq[2] = CycleTimer::currentSeconds();
+  c_time[2] = CycleTimer::currentSeconds();
 
   // Write symbol information into out_data_buf
   write_code_table_memory(out_data_buf, se, symbol_count);
   
-  c_time_seq[3] = CycleTimer::currentSeconds();
+  c_time[3] = CycleTimer::currentSeconds();
   
   // Encode file and write to out_data_buf
   do_encode(in_data_buf, out_data_buf, se);
@@ -251,7 +251,7 @@ int huffman_encode_seq(data_buf& in_data_buf, data_buf& out_data_buf) {
   // By now, data_buf should all be used
   assert(out_data_buf.curr_offset == out_data_buf.size);
   
-  c_time_seq[4] = CycleTimer::currentSeconds();
+  c_time[4] = CycleTimer::currentSeconds();
   
   // Free the Huffman tree.
   free_huffman_tree(sf[0]);
@@ -262,13 +262,13 @@ int huffman_encode_seq(data_buf& in_data_buf, data_buf& out_data_buf) {
 
 
 int huffman_decode_seq(data_buf& in_data_buf, data_buf& out_data_buf) {
-  d_time_seq[0] = CycleTimer::currentSeconds();
+  d_time[0] = CycleTimer::currentSeconds();
   
   // Read the symbol list from input buffer and build Huffman Tree
   unsigned int data_count;
   huffman_node *root = read_code_table_memory(in_data_buf, data_count);
   
-  d_time_seq[1] = CycleTimer::currentSeconds();
+  d_time[1] = CycleTimer::currentSeconds();
 
   // Initialize output buffer
   out_data_buf.data = new unsigned char[data_count];
@@ -294,7 +294,7 @@ int huffman_decode_seq(data_buf& in_data_buf, data_buf& out_data_buf) {
     }
   }
   
-  d_time_seq[2] = CycleTimer::currentSeconds();
+  d_time[2] = CycleTimer::currentSeconds();
   
   // Free the Huffman Tree
   free_huffman_tree(root);

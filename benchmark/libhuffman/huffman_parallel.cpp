@@ -30,7 +30,66 @@ using std::cout;
 using std::endl;
 using std::min;
 
+#define UPDIV(a,b) (((a)+(b)-1)/((b)))
+
 int compressed_chunk_start_offset[NUM_CHUNKS];
+
+static unsigned int
+get_symbol_frequencies_parallel(SymbolFrequencies *pSF, data_buf& buf) {
+  int c;
+  unsigned int total_count = 0;
+
+  int buf_chunk_size = UPDIV(buf.size, NUM_CHUNKS);
+  int histo_chunk_size = UPDIV(MAX_SYMBOLS, NUM_CHUNKS);
+  int* histo_per_thread = new int[NUM_CHUNKS*MAX_SYMBOLS];
+  memset(histo_per_thread, 0, NUM_CHUNKS*MAX_SYMBOLS*sizeof(int));
+
+  /* Set all frequencies to 0. */
+  init_frequencies(pSF);
+
+  auto start_time = CycleTimer::currentSeconds();
+
+#pragma omp parallel
+  {
+    int tid = omp_get_thread_num();
+
+    // Which chunk of the buffer to read
+    int start_offset = buf_chunk_size*tid;
+    // Prevent branches in the loop
+    int end_offset = std::min(start_offset+buf_chunk_size, (int)buf.size);
+
+    // Which memory location to write the private histogram
+    int histo_id = MAX_SYMBOLS*tid;
+
+    for (int i=start_offset; i<end_offset; i++) {
+      histo_per_thread[histo_id+(int)(buf.data[i])]++;
+    }
+
+#pragma omp barrier
+    // Which chunk of the histogram to update
+    start_offset = histo_chunk_size*tid;
+    end_offset = std::min(start_offset+histo_chunk_size, MAX_SYMBOLS);
+
+    for (int i=start_offset; i<end_offset; i++) {
+      int freq = 0;
+      for (int j=0; j<NUM_CHUNKS; j++) {
+        freq+=histo_per_thread[MAX_SYMBOLS*j+i];
+      }
+      histo_per_thread[i] = freq;
+      if (freq) {
+        (*pSF)[i] = new_leaf_node(i);
+        (*pSF)[i]->count = freq;
+      }
+    }
+  }
+
+  for (int i=0; i<MAX_SYMBOLS; i++) {
+    total_count+=histo_per_thread[i];
+  }
+  delete[] histo_per_thread;
+
+  return total_count;
+}
 
 static unsigned int
 get_symbol_frequencies(SymbolFrequencies *pSF, data_buf& buf) {
@@ -300,14 +359,18 @@ huffman_node * read_code_table_memory(data_buf& buf, unsigned int& num_bytes) {
   return root;
 }
 
-int huffman_encode_parallel(data_buf& in_data_buf, data_buf& out_data_buf) {
-  c_time_p[0] = CycleTimer::currentSeconds();
+int huffman_encode_parallel(data_buf& in_data_buf, data_buf& out_data_buf, parallel_type type) {
+  c_time[0] = CycleTimer::currentSeconds();
 
   // Get the frequency of each symbol in the input file.
   SymbolFrequencies sf;
-  unsigned int symbol_count = get_symbol_frequencies(&sf, in_data_buf);
-  
-  c_time_p[1] = CycleTimer::currentSeconds();
+  unsigned int symbol_count = 0;
+  if (type == parallel_type::OPENMP_NAIVE)
+    symbol_count = get_symbol_frequencies(&sf, in_data_buf);
+  else if (type == parallel_type::OPENMP_ParallelHistogram)
+    symbol_count = get_symbol_frequencies_parallel(&sf, in_data_buf);
+
+  c_time[1] = CycleTimer::currentSeconds();
 
   // Build an optimal table from the symbolCount.
   SymbolEncoder *se = calculate_huffman_codes(&sf);
@@ -316,17 +379,17 @@ int huffman_encode_parallel(data_buf& in_data_buf, data_buf& out_data_buf) {
   out_data_buf.size = out_size;
   out_data_buf.curr_offset = 0;
   
-  c_time_p[2] = CycleTimer::currentSeconds();
+  c_time[2] = CycleTimer::currentSeconds();
 
   // Write symbol table
   write_code_table_memory(out_data_buf, se, symbol_count);
   
-  c_time_p[3] = CycleTimer::currentSeconds();
+  c_time[3] = CycleTimer::currentSeconds();
 
   // Encode file
   do_encode(in_data_buf, out_data_buf, se);
   
-  c_time_p[4] = CycleTimer::currentSeconds();
+  c_time[4] = CycleTimer::currentSeconds();
   
   /* Free the Huffman tree. */
   free_huffman_tree(sf[0]);
@@ -336,14 +399,14 @@ int huffman_encode_parallel(data_buf& in_data_buf, data_buf& out_data_buf) {
 
 
 int
-huffman_decode_parallel(data_buf& in_data_buf, data_buf& out_data_buf) {
-  d_time_p[0] = CycleTimer::currentSeconds();
+huffman_decode_parallel(data_buf& in_data_buf, data_buf& out_data_buf, parallel_type type) {
+  d_time[0] = CycleTimer::currentSeconds();
   
   // Read the symbol list from input buffer and build Huffman Tree
   unsigned int data_count;
   huffman_node *root = read_code_table_memory(in_data_buf, data_count);
   
-  d_time_p[1] = CycleTimer::currentSeconds();
+  d_time[1] = CycleTimer::currentSeconds();
 
   // Initialize output buffer
   out_data_buf.data = new unsigned char[data_count];
@@ -378,7 +441,7 @@ huffman_decode_parallel(data_buf& in_data_buf, data_buf& out_data_buf) {
     }
   }
   
-  d_time_p[2] = CycleTimer::currentSeconds();
+  d_time[2] = CycleTimer::currentSeconds();
 
   free_huffman_tree(root);
   return 0;

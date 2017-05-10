@@ -31,6 +31,7 @@ extern char *optarg;
 #include <unistd.h>
 #endif
 
+
 static void version(FILE *out) {
   fputs(
       "huffcode 0.3\n"
@@ -49,7 +50,7 @@ static void usage(FILE *out) {
       out);
 }
 
-static void run_huffman(string& infile_name, bool is_seq) {
+static void run_huffman(string& infile_name, bool is_seq, parallel_type type = OPENMP_NAIVE) {
   // Read input file into memory
   struct stat sbuf;
   stat(infile_name.c_str(), &sbuf);
@@ -78,7 +79,7 @@ static void run_huffman(string& infile_name, bool is_seq) {
     huffman_encode_seq(in_buf, tmp_buf);
   } else {
     tmpfile_name = "compressed_parallel";
-    huffman_encode_parallel(in_buf, tmp_buf);
+    huffman_encode_parallel(in_buf, tmp_buf, type);
   }
   
   // Write the intermediate result to the file
@@ -99,7 +100,7 @@ static void run_huffman(string& infile_name, bool is_seq) {
     huffman_decode_seq(tmp_buf, out_buf);
   } else {
     outfile_name = "decompressed_parallel";
-    huffman_decode_parallel(tmp_buf, out_buf);
+    huffman_decode_parallel(tmp_buf, out_buf, type);
   }
   
   // Write the decompressed bytes to the file
@@ -122,10 +123,8 @@ static void run_huffman(string& infile_name, bool is_seq) {
 }
 
 // Time statistics
-double c_time_seq[5];
-double d_time_seq[3];
-double c_time_p[5];
-double d_time_p[3];
+double c_time[5];
+double d_time[3];
 
 // Given compress times and decompress times, print statistics
 static void print_stats(double c_time[5], double d_time[3]) {
@@ -152,11 +151,26 @@ static void print_stats(double c_time[5], double d_time[3]) {
   cout << "\tDecompression Elapse time = " << total_time << "s" << endl << endl;
 }
 
+static void print_summary(double c_time[5], double d_time[3], double pre_c_time[5], double pre_d_time[3]) {
+  // Print environment setup and speedup
+  cout << "************************* Summary *************************" << endl;
+  cout << "Number of threads: " << NUM_CHUNKS << endl;
+  double total_c_time = c_time[4] - c_time[0];
+  double pre_total_c_time = pre_c_time[4] - pre_c_time[0];
+  cout << "Compression speedup: " << pre_total_c_time / total_c_time << endl;
+  double total_d_time = d_time[2] - d_time[0];
+  double pre_total_d_time = pre_d_time[2] - pre_d_time[0];
+  cout << "Decompression speedup: " << pre_total_d_time / total_d_time << endl;
+  cout << "Total speedup: " << (pre_total_c_time + pre_total_d_time) /
+      (total_c_time + total_d_time) << endl;
+  cout << endl;
+}
+
 int main(int argc, char **argv) {
   /* Get the command line arguments. */
   int opt;
   string infile_name;
-  while ((opt = getopt(argc, argv, "i:bhvmn")) != -1) {
+  while ((opt = getopt(argc, argv, "i:bhvmnt")) != -1) {
     switch (opt) {
       case 'i':
         infile_name = string(optarg);
@@ -178,30 +192,37 @@ int main(int argc, char **argv) {
     usage(stderr);
     return 1;
   }
+
+
+  double pre_c_time[5];
+  double pre_d_time[3];
   
   /************ Start Benchmarking **************/
   // Run Sequential Version
   cout << "******************** Sequential Version *******************" << endl;
   run_huffman(infile_name, true);
-  print_stats(c_time_seq, d_time_seq);
-  
+  print_stats(c_time, d_time);
+
+
+  memcpy(pre_c_time, c_time, sizeof(double)*5);
+  memcpy(pre_d_time, d_time, sizeof(double)*3);
+
   // Run Parallel Version Next
-  cout << "******************** Parallel Version *********************" << endl;
-  run_huffman(infile_name, false);
-  print_stats(c_time_p, d_time_p);
-  
-  
-  // Print environment setup and speedup
-  cout << "************************* Summary *************************" << endl;
-  cout << "Number of threads: " << NUM_CHUNKS << endl;
-  double total_c_time_seq = c_time_seq[4] - c_time_seq[0];
-  double total_c_time_p = c_time_p[4] - c_time_p[0];
-  cout << "Compression speedup: " << total_c_time_seq / total_c_time_p << endl;
-  double total_d_time_seq = d_time_seq[2] - d_time_seq[0];
-  double total_d_time_p = d_time_p[2] - d_time_p[0];
-  cout << "Decompression speedup: " << total_d_time_seq / total_d_time_p << endl;
-  cout << "Total speedup: " << (total_c_time_seq + total_d_time_seq) /
-      (total_c_time_p + total_d_time_p) << endl;
-  
+  cout << "******************** Parallel Version (OPENMP_NAIVE)*********************" << endl;
+  run_huffman(infile_name, false, OPENMP_NAIVE);
+  print_stats(c_time, d_time);
+
+  print_summary(c_time, d_time, pre_c_time, pre_d_time);
+
+  memcpy(pre_c_time, c_time, sizeof(double)*5);
+  memcpy(pre_d_time, d_time, sizeof(double)*3);
+
+  // Run Parallel Version Next
+  cout << "******************** Parallel Version (OPENMP_ParallelHistogram)*********************" << endl;
+  run_huffman(infile_name, false, OPENMP_ParallelHistogram);
+  print_stats(c_time, d_time);
+
+  print_summary(c_time, d_time, pre_c_time, pre_d_time);
+
   return 0;
 }

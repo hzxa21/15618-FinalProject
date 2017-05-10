@@ -1,6 +1,6 @@
 CXX=g++ -m64
-# CXXFLAGS=-I../common -Iobjs/ -O3 -std=c++11 -fopenmp
-CXXFLAGS=-I../common -Iobjs/ -g -O0 -ggdb -fsanitize=address -fno-omit-frame-pointer -fuse-ld=gold -std=c++11 -fopenmp
+CXXFLAGS=-I../common -Iobjs/ -O3 -std=c++11 -fopenmp
+# CXXFLAGS=-I../common -Iobjs/ -g -O0 -ggdb -fsanitize=address -fno-omit-frame-pointer -fuse-ld=gold -std=c++11 -fopenmp
 ISPC=ispc
 # note: change target to avx-x2 for AVX capable machines
 ISPCFLAGS=-O2 --target=sse4-x2 --arch=x86-64

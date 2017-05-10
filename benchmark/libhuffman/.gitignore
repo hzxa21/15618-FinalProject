@@ -4,3 +4,5 @@ cmake-build-*/*
 .idea/*
 final_proj/
 data/*
+compress*
+decompress*
