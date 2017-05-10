@@ -1,3 +1,7 @@
+# Final Checkpoint & Preliminary Result
+(Coming Soon...)
+
+---------------------------------------
 # Project Middle Checkpoint (Apr 25th)
 ## Project Status Summary
 Since the beginning of the project, here are some of the progress we made.
