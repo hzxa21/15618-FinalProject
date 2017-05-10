@@ -6,3 +6,6 @@ final_proj/
 data/*
 compress*
 decompress*
+objs/
+delete_data.sh
+huffman
