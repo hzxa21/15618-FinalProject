@@ -38,11 +38,15 @@ typedef struct huffman_code_tag {
 } huffman_code;
 
 struct data_buf {
-  // Public functions
+  // Constructors / Deconstructors
   data_buf() : data(NULL), size(0), curr_offset(0) {}
   data_buf(void* i_data, size_t& i_size) :
     data((unsigned char*)i_data), size(i_size), curr_offset(0) {}
+  ~data_buf() {
+    delete[] data;
+  }
   
+  // Public functions
   void write_data(void* address, size_t data_size) {
     assert(curr_offset + data_size <= size);
     memcpy(data + curr_offset, address, data_size);
@@ -70,7 +74,12 @@ struct data_buf {
 typedef huffman_node *SymbolFrequencies[MAX_SYMBOLS];
 typedef huffman_code *SymbolEncoder[MAX_SYMBOLS];
 
+// Sequential Version
 int huffman_encode_seq(data_buf& in_buf, data_buf& out_buf);
 int huffman_decode_seq(data_buf& in_buf, data_buf& out_buf);
+
+// Parallel Version
+int huffman_encode_parallel(data_buf& in_buf, data_buf& out_buf);
+int huffman_decode_parallel(data_buf& in_buf, data_buf& out_buf);
 
 #endif
