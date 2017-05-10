@@ -10,9 +10,12 @@
 #include <stdlib.h>
 #include <string.h>
 #include <string>
+#include <iostream>
 #include "huffman.h"
 
 using std::string;
+using std::cout;
+using std::endl;
 
 #ifdef WIN32
 #include <malloc.h>
@@ -104,19 +107,36 @@ int main(int argc, char **argv) {
   FILE* in_file = fopen(infile_name.c_str(), "rb");
   unsigned char* in_data = new unsigned char[file_size];
   fread(in_data, 1, file_size, in_file);
+  // Stores input file bytes
   data_buf in_buf(in_data, file_size);
+  // Store compressed bytes
+  data_buf tmp_buf;
+  // Store decompressed bytes. It should be the same as input file bytes
   data_buf out_buf;
   
   // Doing benchmarking
   if (is_benchmark) {
-    // Run sequential version first
-    huffman_encode(in_buf, out_buf);
+    // Encode input buffer to intermediate buffer
+    huffman_encode(in_buf, tmp_buf);
     
-    // TODO: delete this
-    FILE* out_file = fopen(outfile_name.c_str(), "wb");
-    fwrite(out_buf.data, 1, out_buf.size, out_file);
-    fclose(out_file);
-    fclose(in_file);
+    // Rewind the offset pointer in out_buf back to the beginning
+    tmp_buf.rewind();
+    
+    // Decompressed the intermediate bytes back to the original bytes
+    huffman_decode(tmp_buf, out_buf);
+    
+    // Correctness Check.
+    assert(in_buf.size == out_buf.size);
+    int res = memcmp(in_buf.data, out_buf.data, in_buf.size);
+    if (res == 0)
+      cout << "Compression is correct!!" << endl;
+    else
+      cout << "Compression is incorrect!!" << endl;
+    
+//    FILE* out_file = fopen(outfile_name.c_str(), "wb");
+//    fwrite(out_buf.data, 1, out_buf.size, out_file);
+//    fclose(out_file);
+//    fclose(in_file);
   }
   
   return 0;
