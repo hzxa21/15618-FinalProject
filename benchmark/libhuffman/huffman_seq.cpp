@@ -8,6 +8,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <assert.h>
+#include "util.h"
 #include "huffman.h"
 #include "util.h"
 
