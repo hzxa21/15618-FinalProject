@@ -44,6 +44,41 @@ static void usage(FILE *out) {
       out);
 }
 
+static void run_huffman(data_buf& in_buf, bool is_seq) {
+  // Buffer that store compressed bytes
+  data_buf tmp_buf;
+  // Buffer that stores decompressed bytes. It should be the same as input bytes
+  data_buf out_buf;
+  
+  // Encode input buffer to intermediate buffer
+  if (is_seq)
+    huffman_encode_seq(in_buf, tmp_buf);
+  else
+    huffman_encode_parallel(in_buf, tmp_buf);
+  
+  // Write the intermediate result to a file called "compressed"
+  FILE* tmp_file = fopen(is_seq ? "compressed_seq" : "compressed_parallel", "wb");
+  fwrite(tmp_buf.data, 1, tmp_buf.size, tmp_file);
+  fclose(tmp_file);
+  
+  // Rewind the offset pointer in out_buf back to the beginning
+  tmp_buf.rewind();
+  
+  // Decompressed the intermediate bytes back to the original bytes
+  if (is_seq)
+    huffman_decode_seq(tmp_buf, out_buf);
+  else
+    huffman_decode_parallel(tmp_buf, out_buf);
+  
+  // Correctness Check.
+  assert(in_buf.size == out_buf.size);
+  int res = memcmp(in_buf.data, out_buf.data, in_buf.size);
+  if (res == 0)
+    cout << "Compression result is correct!!" << endl;
+  else
+    cout << "Compression result is incorrect!!" << endl;
+}
+
 int main(int argc, char **argv) {
   /* Get the command line arguments. */
   int opt;
@@ -81,38 +116,27 @@ int main(int argc, char **argv) {
     return 1;
   }
   unsigned char* in_data = new unsigned char[file_size];
-  fread(in_data, 1, file_size, in_file);
+  size_t read_cnt = fread(in_data, 1, file_size, in_file);
+  if (read_cnt != file_size) {
+    cout << "Cannot read entire input file" << endl;
+    return 1;
+  }
   fclose(in_file);
   // Buffer that stores input file bytes
   data_buf in_buf(in_data, file_size);
-  // Buffer that store compressed bytes
-  data_buf tmp_buf;
-  // Buffer that stores decompressed bytes. It should be the same as input bytes
-  data_buf out_buf;
+  
   
   
   /************ Start Benchmarking **************/
-  // Encode input buffer to intermediate buffer
-  huffman_encode_seq(in_buf, tmp_buf);
+  // Run Sequential Version First
+  cout << "Running Sequential Version" << endl;
+  run_huffman(in_buf, true);
   
-  // Write the intermediate result to a file called "compressed"
-  FILE* tmp_file = fopen("compressed", "wb");
-  fwrite(tmp_buf.data, 1, tmp_buf.size, tmp_file);
-  fclose(tmp_file);
+  cout << endl;
   
-  // Rewind the offset pointer in out_buf back to the beginning
-  tmp_buf.rewind();
-  
-  // Decompressed the intermediate bytes back to the original bytes
-  huffman_decode_seq(tmp_buf, out_buf);
-  
-  // Correctness Check.
-  assert(in_buf.size == out_buf.size);
-  int res = memcmp(in_buf.data, out_buf.data, in_buf.size);
-  if (res == 0)
-    cout << "Compression result is correct!!" << endl;
-  else
-    cout << "Compression result is incorrect!!" << endl;
+  // Run Parallel Version Next
+  cout << "Running Parallel Version" << endl;
+  run_huffman(in_buf, false);
   
   return 0;
 }
