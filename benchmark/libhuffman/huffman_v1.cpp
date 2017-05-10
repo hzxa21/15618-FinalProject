@@ -32,17 +32,9 @@
 int compressed_chunk_start_offset[NUM_CHUNKS];
 
 
-int huffman_encode_memory(const unsigned char *bufin,
-                          uint32_t bufinlen,
-                          unsigned char **pbufout,
-                          uint32_t *pbufoutlen) {}
-int huffman_decode_memory(const unsigned char *bufin,
-                          uint32_t bufinlen,
-                          unsigned char **bufout,
-                          uint32_t *pbufoutlen) {}
+#define huffman_encode huffman_encode_seq
+#define huffman_decode huffman_decode_seq
 
-int huffman_encode_file(FILE *in, FILE *out){}
-int huffman_decode_file(FILE *in, FILE *out){}
 /*************************** New Added (Sequential) *******************************/
 static unsigned int
 get_symbol_frequencies(SymbolFrequencies *pSF, data_buf& buf) {
@@ -418,18 +410,18 @@ huffman_decode(data_buf& in_data_buf, data_buf& out_data_buf) {
 
     while (o_start_offset < o_end_offset) {
       if (i_offset >= in_data_buf.size)
-        printf("[%d] ##################\n", tid);
+        printf("[%d] Overflow in\n", tid);
       unsigned char byte = in_data_buf.data[i_offset++];
       unsigned char mask = 1;
       while (o_start_offset < o_end_offset && mask) {
         if (o_start_offset >= data_count)
-          printf("********************************\n");
+          printf("[%d] Overflow out\n", tid);
         if (byte & mask) {
           if (!p->one)
-            printf("***1\n");
+            printf("NULL at 1\n");
         }
         else if (!p->zero)
-          printf("***0\n");
+          printf("NULL at 0\n");
 
         p = byte & mask ? p->one : p->zero;
         mask <<= 1;
