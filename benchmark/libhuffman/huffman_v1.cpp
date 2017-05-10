@@ -29,7 +29,7 @@
 
 #define NUM_CHUNKS 4
 
-int chunk_start_offset[NUM_CHUNKS];
+int compressed_chunk_start_offset[NUM_CHUNKS];
 
 
 int huffman_encode_memory(const unsigned char *bufin,
@@ -130,11 +130,11 @@ size_t get_out_size(data_buf in_buf, SymbolEncoder *se) {
 
   // TODO: Compute prefix sum and store in chunk_start_offsest (byte-level)
   int sum = 0;
-  chunk_start_offset[0] = 0;
+  compressed_chunk_start_offset[0] = 0;
   for (int i = 0; i<NUM_CHUNKS-1; i++) {
     sum+=bytes_in_chunks[i];
-    chunk_start_offset[i+1] = sum;
-//    printf("[%d]: %d\n",i,sum);
+    compressed_chunk_start_offset[i+1] = sum;
+    printf("[%d]: %d\n",i+1,sum);
   }
   res = NUM_CHUNKS*sizeof(int) + sum + bytes_in_chunks[NUM_CHUNKS-1];
 
@@ -154,7 +154,7 @@ do_encode(data_buf& in_buf, data_buf& out_buf, SymbolEncoder *se) {
     unsigned char curbit = 0;
     int tid = omp_get_thread_num();
 
-    int start_offset = chunk_start_offset[tid];
+    int start_offset = compressed_chunk_start_offset[tid];
     ((int*)(out_buf.data))[tid] = start_offset;
     start_offset+=NUM_CHUNKS*sizeof(int);
 //    printf("[%d] Start offset = %d\n", tid, start_offset);
@@ -262,7 +262,7 @@ huffman_encode(const char *file_in, const char* file_out) {
   SymbolEncoder *se;
   huffman_node *root = NULL;
   unsigned int symbol_count;
-  memset(chunk_start_offset, 0, sizeof(chunk_start_offset));
+  memset(compressed_chunk_start_offset, 0, sizeof(compressed_chunk_start_offset));
 
   struct stat sbuf;
   stat(file_in, &sbuf);
@@ -291,6 +291,7 @@ huffman_encode(const char *file_in, const char* file_out) {
   size_t offset = write_code_table(out_fd, se, symbol_count);
   size_t out_size;
   if (offset >= 0) {
+    std::cout << "Metadata offset = " << offset<< std::endl;
     auto endTime6 = CycleTimer::currentSeconds();
     out_size = get_out_size(in_data_buf, se);
     std::cout << "Out size = " << out_size << std::endl;
@@ -344,22 +345,36 @@ huffman_decode(const char* file_in, const char* file_out) {
     return 1;
 
   /* Decode the file. */
+  printf("Start decompress\n");
   p = root;
   size_t out_size = data_count;
+  memcpy(compressed_chunk_start_offset, (int*)(in_data_buf.data+cur_offset), NUM_CHUNKS*sizeof(int));
+  cur_offset+=NUM_CHUNKS*sizeof(int);
+  printf("Out size = %ld\n", out_size);
   void* out_data = malloc(out_size);
   auto out_data_buf = data_buf(out_data, out_size);
-  size_t o_offset = 0;
-  while (data_count > 0) {
-    unsigned char byte = in_data_buf.data[cur_offset++];
-    unsigned char mask = 1;
-    while (data_count > 0 && mask) {
-      p = byte & mask ? p->one : p->zero;
-      mask <<= 1;
+  omp_set_num_threads(NUM_CHUNKS);
+#pragma omp parallel
+  {
+    int tid = omp_get_thread_num();
+    printf("[%d] compressed_chunk_start_offset = %d\n", tid, compressed_chunk_start_offset[tid]);
+    int i_offset = compressed_chunk_start_offset[tid]+cur_offset;
+    printf("[%d] Current offset = %d\n", tid, i_offset);
 
-      if (p->isLeaf) {
-        out_data_buf.data[o_offset++] = p->symbol;
-        p = root;
-        --data_count;
+    int o_chunk_size = (data_count+NUM_CHUNKS)/NUM_CHUNKS;
+    size_t o_start_offset = o_chunk_size * tid;
+    size_t o_end_offset = std::min(o_start_offset+o_chunk_size, (size_t)data_count);
+    while (o_start_offset < o_end_offset) {
+      unsigned char byte = in_data_buf.data[i_offset++];
+      unsigned char mask = 1;
+      while (o_start_offset < o_end_offset && mask) {
+        p = byte & mask ? p->one : p->zero;
+        mask <<= 1;
+
+        if (p->isLeaf) {
+          out_data_buf.data[o_start_offset++] = p->symbol;
+          p = root;
+        }
       }
     }
   }
