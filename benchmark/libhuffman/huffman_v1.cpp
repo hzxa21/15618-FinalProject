@@ -27,7 +27,7 @@
 
 #endif
 
-#define NUM_CHUNKS 8
+#define NUM_CHUNKS 4
 
 int chunk_start_offset[NUM_CHUNKS];
 
@@ -113,11 +113,11 @@ size_t get_out_size(data_buf in_buf, SymbolEncoder *se) {
   size_t res = 0;
   int cnt = 0;
   omp_set_num_threads(NUM_CHUNKS);
-  int bits_in_chunks[NUM_CHUNKS];
+  int bytes_in_chunks[NUM_CHUNKS];
 #pragma omp parallel
   {
     int tid = omp_get_thread_num();
-    bits_in_chunks[tid] = 0;
+    bytes_in_chunks[tid] = 0;
     int cnt = 0;
     #pragma omp for schedule(static) nowait
     for (int i = 0; i < in_buf.size; i++) {
@@ -125,16 +125,18 @@ size_t get_out_size(data_buf in_buf, SymbolEncoder *se) {
       huffman_code *code = (*se)[uc];
       cnt += code->numbits;
     }
-    bits_in_chunks[tid] = cnt;
+    bytes_in_chunks[tid] = (cnt+7)/8;
   }
 
   // TODO: Compute prefix sum and store in chunk_start_offsest (byte-level)
-
-  for (int i=0; i<8; i++) {
-    printf("%d\n", output[i]);
-    res += output[i];
+  int sum = 0;
+  chunk_start_offset[0] = 0;
+  for (int i = 0; i<NUM_CHUNKS-1; i++) {
+    sum+=bytes_in_chunks[i];
+    chunk_start_offset[i+1] = sum;
+//    printf("[%d]: %d\n",i,sum);
   }
-  res = (res+7)/8 + NUM_CHUNKS*sizeof(int);
+  res = NUM_CHUNKS*sizeof(int) + sum + bytes_in_chunks[NUM_CHUNKS-1];
 
   return res;
 }
@@ -146,14 +148,16 @@ do_encode(data_buf& in_buf, data_buf& out_buf, SymbolEncoder *se) {
 
   printf("Start encoding\n");
   omp_set_num_threads(NUM_CHUNKS);
-#pragma omp parallel
+  #pragma omp parallel
   {
     unsigned char curbyte = 0;
     unsigned char curbit = 0;
     int tid = omp_get_thread_num();
+
     int start_offset = chunk_start_offset[tid];
-    ((int*)(in_buf.data))[tid] = start_offset;
+    ((int*)(out_buf.data))[tid] = start_offset;
     start_offset+=NUM_CHUNKS*sizeof(int);
+//    printf("[%d] Start offset = %d\n", tid, start_offset);
 
 #pragma omp for schedule(static) nowait
     for (int i_offset = 0; i_offset < in_buf.size; i_offset++) {
@@ -287,20 +291,19 @@ huffman_encode(const char *file_in, const char* file_out) {
   size_t offset = write_code_table(out_fd, se, symbol_count);
   size_t out_size;
   if (offset >= 0) {
+    auto endTime6 = CycleTimer::currentSeconds();
     out_size = get_out_size(in_data_buf, se);
     std::cout << "Out size = " << out_size << std::endl;
-//    void* out_data = mmap(NULL, out_size, PROT_READ | PROT_WRITE, MAP_SHARED, out_fd, offset);
-//    if (out_data == MAP_FAILED) {
-//      printf("Map fail\n");
-//      return -1;
-//    }
+    std::cout << "Get out size time = " << CycleTimer::currentSeconds() - endTime6 << std::endl;
+
+    auto endTime7 = CycleTimer::currentSeconds();
     void* out_data = malloc(out_size);
     auto out_data_buf = data_buf(out_data, out_size);
     rc = do_encode(in_data_buf, out_data_buf, se);
     auto endTime5 = CycleTimer::currentSeconds();
+    std::cout << "Do encode time = " << endTime5 - endTime7 << std::endl;
     write(out_fd, out_data, out_size);
     std::cout << "Write Elapse time = " << CycleTimer::currentSeconds() - endTime5 << std::endl;
-
   }
 
   close(out_fd);
