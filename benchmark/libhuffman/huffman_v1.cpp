@@ -304,6 +304,7 @@ huffman_encode(const char *file_in, const char* file_out) {
     auto endTime5 = CycleTimer::currentSeconds();
     std::cout << "Do encode time = " << endTime5 - endTime7 << std::endl;
     write(out_fd, out_data, out_size);
+    free(out_data);
     std::cout << "Write Elapse time = " << CycleTimer::currentSeconds() - endTime5 << std::endl;
   }
 
@@ -381,6 +382,7 @@ huffman_decode(const char* file_in, const char* file_out) {
 
   int out_fd = open(file_out, O_WRONLY);
   write(out_fd, out_data, out_size);
+  free(out_data);
   close(out_fd);
 
   free_huffman_tree(root);
