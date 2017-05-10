@@ -223,13 +223,13 @@ static huffman_node * read_code_table_memory(data_buf& buf, unsigned int& num_by
 }
                      
 int huffman_encode_seq(data_buf& in_data_buf, data_buf& out_data_buf) {
-  auto t0 = CycleTimer::currentSeconds();
+  c_time_seq[0] = CycleTimer::currentSeconds();
 
   // Get the frequency of each symbol in the input file.
   SymbolFrequencies sf;
   unsigned int symbol_count = get_symbol_frequencies(&sf, in_data_buf);
   
-  auto t1 = CycleTimer::currentSeconds();
+  c_time_seq[1] = CycleTimer::currentSeconds();
   
   // Build an optimal table from the symbolCount.
   SymbolEncoder *se = calculate_huffman_codes(&sf);
@@ -238,12 +238,12 @@ int huffman_encode_seq(data_buf& in_data_buf, data_buf& out_data_buf) {
   out_data_buf.size = out_size;
   out_data_buf.curr_offset = 0;
   
-  auto t2 = CycleTimer::currentSeconds();
+  c_time_seq[2] = CycleTimer::currentSeconds();
 
   // Write symbol information into out_data_buf
   write_code_table_memory(out_data_buf, se, symbol_count);
   
-  auto t3 = CycleTimer::currentSeconds();
+  c_time_seq[3] = CycleTimer::currentSeconds();
   
   // Encode file and write to out_data_buf
   do_encode(in_data_buf, out_data_buf, se);
@@ -251,23 +251,8 @@ int huffman_encode_seq(data_buf& in_data_buf, data_buf& out_data_buf) {
   // By now, data_buf should all be used
   assert(out_data_buf.curr_offset == out_data_buf.size);
   
-  auto t4 = CycleTimer::currentSeconds();
+  c_time_seq[4] = CycleTimer::currentSeconds();
   
-  // Output statistics
-  auto total_time = t4 - t0;
-  cout << "*********** Compression Statistics ************" << endl;
-  cout << "Time to generate Histogram = " << t1 - t0 << "s, "
-       << get_percentage(total_time, t1- t0) << "%"<< endl;
-  cout << "Time to generate Huffman Tree = " << t2 - t1 << "s, "
-       << get_percentage(total_time, t2 - t1) << "%" << endl;
-  cout << "Time to write symbol list = " << t3 - t2 << "s, "
-       << get_percentage(total_time, t3 - t2) << "%" << endl;
-  cout << "Time to compress file = " << t4 - t3 << "s, "
-       << get_percentage(total_time, t4 - t3) << "%" << endl;
-  cout << "Total Elapse time = " << t4 - t0 << "s" <<endl;
-  cout << "Compression Ratio = " << out_size * 1.0 / in_data_buf.size
-       << endl << endl;
-
   // Free the Huffman tree.
   free_huffman_tree(sf[0]);
   free_encoder(se);
@@ -277,13 +262,13 @@ int huffman_encode_seq(data_buf& in_data_buf, data_buf& out_data_buf) {
 
 
 int huffman_decode_seq(data_buf& in_data_buf, data_buf& out_data_buf) {
-  auto t0 = CycleTimer::currentSeconds();
+  d_time_seq[0] = CycleTimer::currentSeconds();
   
   // Read the symbol list from input buffer and build Huffman Tree
   unsigned int data_count;
   huffman_node *root = read_code_table_memory(in_data_buf, data_count);
   
-  auto t1 = CycleTimer::currentSeconds();
+  d_time_seq[1] = CycleTimer::currentSeconds();
 
   // Initialize output buffer
   out_data_buf.data = new unsigned char[data_count];
@@ -309,17 +294,8 @@ int huffman_decode_seq(data_buf& in_data_buf, data_buf& out_data_buf) {
     }
   }
   
-  auto t2 = CycleTimer::currentSeconds();
+  d_time_seq[2] = CycleTimer::currentSeconds();
   
-  // Output statistics
-  double total_time = t2 - t0;
-  cout << "*********** Decompression Statistics ************" << endl;
-  cout << "Time to generate Huffman Tree = " << t1 - t0 << "s, "
-       << get_percentage(total_time, t1- t0) << "%" << endl;
-  cout << "Time to decompress file = " << t2 - t1 << "s, "
-       << get_percentage(total_time, t2- t1) << "%" << endl;
-  cout << "Total Elapse time = " << t2 - t0 << "s" << endl << endl;
-
   // Free the Huffman Tree
   free_huffman_tree(root);
   return 0;
