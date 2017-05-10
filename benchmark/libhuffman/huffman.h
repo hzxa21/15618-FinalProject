@@ -70,18 +70,7 @@ struct data_buf {
 typedef huffman_node *SymbolFrequencies[MAX_SYMBOLS];
 typedef huffman_code *SymbolEncoder[MAX_SYMBOLS];
 
-int huffman_encode_file(FILE *in, FILE *out);
-int huffman_decode_file(FILE *in, FILE *out);
-int huffman_encode_memory(const unsigned char *bufin,
-						  uint32_t bufinlen,
-						  unsigned char **pbufout,
-						  uint32_t *pbufoutlen);
-int huffman_decode_memory(const unsigned char *bufin,
-						  uint32_t bufinlen,
-						  unsigned char **bufout,
-						  uint32_t *pbufoutlen);
-
-int huffman_encode(data_buf& in_buf, data_buf& out_buf);
-int huffman_decode(data_buf& in_buf, data_buf& out_buf);
+int huffman_encode_seq(data_buf& in_buf, data_buf& out_buf);
+int huffman_decode_seq(data_buf& in_buf, data_buf& out_buf);
 
 #endif
