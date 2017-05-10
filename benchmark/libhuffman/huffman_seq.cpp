@@ -983,54 +983,122 @@ get_symbol_frequencies(SymbolFrequencies *pSF, data_buf& buf) {
   return total_count;
 }
 
-// Return offset
-static long
-write_code_table(int out_fd, SymbolEncoder *se, uint32_t symbol_count) {
-  size_t cur_offset = 0;
+//// Return offset
+//static long
+//write_code_table(int out_fd, SymbolEncoder *se, uint32_t symbol_count) {
+//  size_t cur_offset = 0;
+//
+//  uint32_t i, count = 0;
+//
+//  /* Determine the number of entries in se. */
+//  for (i = 0; i < MAX_SYMBOLS; ++i) {
+//    if ((*se)[i])
+//      ++count;
+//  }
+//
+//  /* Write the number of entries in network byte order. */
+//  i = htonl(count);
+//
+//  if (write(out_fd, &i, sizeof(i)) < 0)
+//    return -1;
+//
+//  /* Write the number of bytes that will be encoded. */
+//  symbol_count = htonl(symbol_count);
+//  if (write(out_fd, &symbol_count, sizeof(symbol_count)) < 0)
+//    return -1;
+//
+//  cur_offset += sizeof(symbol_count) + sizeof(i);
+//
+//  /* Write the entries. */
+//  for (i = 0; i < MAX_SYMBOLS; ++i) {
+//    huffman_code *p = (*se)[i];
+//    if (p) {
+//      unsigned int numbytes;
+//      /* Write the 1 byte symbol. */
+//      write(out_fd, &i, 1);
+//      /* Write the 1 byte code bit length. */
+//      write(out_fd, &(p->numbits), 1);
+//      /* Write the code bytes. */
+//      numbytes = numbytes_from_numbits(p->numbits);
+//      if (write(out_fd, p->bits, numbytes) < 0)
+//        return -1;
+//      cur_offset+= numbytes+2;
+//    }
+//  }
+//
+//  return cur_offset;
+//}
 
+
+/*
+ * Allocates memory and sets *pbufout to point to it. The memory
+ * contains the code table.
+ */
+void write_code_table_memory(data_buf& out_data_buf,
+                             SymbolEncoder *se,
+                             uint32_t symbol_count) {
   uint32_t i, count = 0;
-
+  
+  size_t curr_offset = 0;
+  
   /* Determine the number of entries in se. */
   for (i = 0; i < MAX_SYMBOLS; ++i) {
     if ((*se)[i])
       ++count;
   }
-
+  
   /* Write the number of entries in network byte order. */
   i = htonl(count);
-
-  if (write(out_fd, &i, sizeof(i)) < 0)
-    return -1;
-
+  out_data_buf.write_data(&i, sizeof(i));
+  
   /* Write the number of bytes that will be encoded. */
   symbol_count = htonl(symbol_count);
-  if (write(out_fd, &symbol_count, sizeof(symbol_count)) < 0)
-    return -1;
-
-  cur_offset += sizeof(symbol_count) + sizeof(i);
-
+  out_data_buf.write_data(&symbol_count, sizeof(symbol_count));
+  
   /* Write the entries. */
   for (i = 0; i < MAX_SYMBOLS; ++i) {
     huffman_code *p = (*se)[i];
     if (p) {
       unsigned int numbytes;
+      /* The value of i is < MAX_SYMBOLS (256), so it can
+       be stored in an unsigned char. */
+      unsigned char uc = (unsigned char) i;
+      
       /* Write the 1 byte symbol. */
-      write(out_fd, &i, 1);
+      out_data_buf.write_data(&uc, sizeof(uc));
+      
       /* Write the 1 byte code bit length. */
-      write(out_fd, &(p->numbits), 1);
+      uc = (unsigned char) p->numbits;
+      
+      out_data_buf.write_data(&uc, sizeof(uc));
+      
       /* Write the code bytes. */
       numbytes = numbytes_from_numbits(p->numbits);
-      if (write(out_fd, p->bits, numbytes) < 0)
-        return -1;
-      cur_offset+= numbytes+2;
+      
+      out_data_buf.write_data(p->bits, numbytes);
     }
   }
-
-  return cur_offset;
 }
+
 
 size_t get_out_size(data_buf in_buf, SymbolEncoder *se) {
   size_t res = 0;
+  
+  // Calculate the size of symbol metadata
+  // uint32_t for number of unique symbols
+  res += 4;
+  // uint32_t for number of bytes in the input file
+  res += 4;
+  for (int i = 0; i < MAX_SYMBOLS; ++i) {
+    if ((*se)[i]) {
+      // 1 byte for symbol, 1 byte for code bit length
+      res += 2;
+      // Code bytes;
+      res += numbytes_from_numbits((*se)[i]->numbits);
+    }
+  }
+  
+  // Calculate the size of compressed file
   int cnt = 0;
   for (int i=0; i<in_buf.size; i++) {
     unsigned char uc = in_buf.data[i];
@@ -1039,7 +1107,7 @@ size_t get_out_size(data_buf in_buf, SymbolEncoder *se) {
     res += cnt / 8;
     cnt = cnt % 8;
   }
-  if (res)
+  if (cnt)
     res++;
   return res;
 }
@@ -1049,7 +1117,6 @@ static int
 do_encode(data_buf& in_buf, data_buf& out_buf, SymbolEncoder *se) {
   unsigned char curbyte = 0;
   unsigned char curbit = 0;
-  int o_offset = 0;
 
   printf("Start encoding\n");
 
@@ -1068,7 +1135,7 @@ do_encode(data_buf& in_buf, data_buf& out_buf, SymbolEncoder *se) {
       /* If this byte is filled up then write it
        * out and reset the curbit and curbyte. */
       if (++curbit == 8) {
-        out_buf.data[o_offset++] = curbyte;
+        out_buf.write_data(&curbyte, 1);
         curbyte = 0;
         curbit = 0;
       }
@@ -1082,7 +1149,7 @@ do_encode(data_buf& in_buf, data_buf& out_buf, SymbolEncoder *se) {
    * then output it.
    */
   if (curbit > 0)
-    out_buf.data[o_offset] = curbyte;
+    out_buf.write_data(&curbyte, 1);
 
   return 0;
 }
@@ -1146,73 +1213,45 @@ read_code_table(data_buf& buf, unsigned int *pDataBytes, size_t& cur_offset) {
 
   return root;
 }
-
-int
-huffman_encode(const char *file_in, const char* file_out) {
+                     
+int huffman_encode(data_buf& in_data_buf, data_buf& out_data_buf) {
+  /* Get the frequency of each symbol in the input file. */
   auto startTime = CycleTimer::currentSeconds();
   SymbolFrequencies sf;
-  SymbolEncoder *se;
-  huffman_node *root = NULL;
-  unsigned int symbol_count;
-
-  struct stat sbuf;
-  stat(file_in, &sbuf);
-  size_t in_size = sbuf.st_size;
-  printf("In size = %ld\n", in_size);
-  int in_fd = open(file_in, O_RDONLY);
-  void* in_data = mmap(NULL, in_size, PROT_READ, MAP_SHARED, in_fd, 0);
-  auto in_data_buf = data_buf(in_data, in_size);
-
-  /* Get the frequency of each symbol in the input file. */
-  symbol_count = get_symbol_frequencies(&sf, in_data_buf);
+  unsigned int symbol_count = get_symbol_frequencies(&sf, in_data_buf);
   auto endTime1 = CycleTimer::currentSeconds();
-  std::cout << "Gen Histogram Elapse time = " << endTime1 - startTime << std::endl;
-
+  
   /* Build an optimal table from the symbolCount. */
-  se = calculate_huffman_codes(&sf);
-  root = sf[0];
-
+  SymbolEncoder *se = calculate_huffman_codes(&sf);
+  size_t out_size = get_out_size(in_data_buf, se);
+  out_data_buf.data = new unsigned char[out_size];
+  out_data_buf.size = out_size;
+  out_data_buf.curr_offset = 0;
+  std::cout << "Out size = " << out_size << std::endl;
   auto endTime3 = CycleTimer::currentSeconds();
 
-  int out_fd = open(file_out, O_WRONLY);
-
-  /* Scan the file again and, using the table
-     previously built, encode it into the output file. */
-  int rc;
-  size_t offset = write_code_table(out_fd, se, symbol_count);
-  size_t out_size;
-  if (offset >= 0) {
-    out_size = get_out_size(in_data_buf, se);
-    std::cout << "Out size = " << out_size << std::endl;
-//    void* out_data = mmap(NULL, out_size, PROT_READ | PROT_WRITE, MAP_SHARED, out_fd, offset);
-//    if (out_data == MAP_FAILED) {
-//      printf("Map fail\n");
-//      return -1;
-//    }
-    void* out_data = malloc(out_size);
-    auto out_data_buf = data_buf(out_data, out_size);
-    rc = do_encode(in_data_buf, out_data_buf, se);
-    auto endTime5 = CycleTimer::currentSeconds();
-    write(out_fd, out_data, out_size);
-    std::cout << "Write Elapse time = " << CycleTimer::currentSeconds() - endTime5 << std::endl;
-
-  }
-
-  close(out_fd);
-  close(in_fd);
-
+  /* Write symbol information into out_data_buf */
+  write_code_table_memory(out_data_buf, se, symbol_count);
+  
+  /* Encode file and write to out_data_buf */
+  do_encode(in_data_buf, out_data_buf, se);
+  
+  // By now, data_buf should all be used
+  assert(out_data_buf.curr_offset == out_data_buf.size);
+  
   auto endTime4 = CycleTimer::currentSeconds();
+  
+  /* Output statistics */
+  std::cout << "Gen Histogram Elapse time = " << endTime1 - startTime << std::endl;
   std::cout << "Compress File Elapse time = " << endTime4 - endTime3 << std::endl;
-
   std::cout << "Total Elapse time = " << endTime4 - startTime << std::endl;
-
-  printf("Compress Ratio = %f\n", out_size*1.0/in_size);
-
+  printf("Compress Ratio = %f\n", out_size * 1.0 / in_data_buf.size);
 
   /* Free the Huffman tree. */
-  free_huffman_tree(root);
+  free_huffman_tree(sf[0]);
   free_encoder(se);
-  return rc;
+  
+  return 0;
 }
 
 

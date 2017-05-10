@@ -38,9 +38,21 @@ typedef struct huffman_code_tag {
 } huffman_code;
 
 struct data_buf {
-  data_buf(void* i_data, size_t& i_size) : data((unsigned char*)i_data), size(i_size) {}
+  // Public functions
+  data_buf() : data(NULL), size(0), curr_offset(0) {}
+  data_buf(void* i_data, size_t& i_size) :
+    data((unsigned char*)i_data), size(i_size), curr_offset(0) {}
+  
+  void write_data(void* address, size_t data_size) {
+    assert(curr_offset + data_size <= size);
+    memcpy(data + curr_offset, address, data_size);
+    curr_offset += data_size;
+  }
+  
+  // Data Variables
   unsigned char* data;
   size_t size;
+  unsigned int curr_offset;
 };
 
 
@@ -59,7 +71,7 @@ int huffman_decode_memory(const unsigned char *bufin,
 						  unsigned char **bufout,
 						  uint32_t *pbufoutlen);
 
-int huffman_encode(const char*, const char*);
+int huffman_encode(data_buf& in_buf, data_buf& out_buf);
 int huffman_decode(const char*, const char*);
 
 #endif
