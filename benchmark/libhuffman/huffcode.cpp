@@ -10,10 +10,14 @@
 #include <stdlib.h>
 #include <string.h>
 #include <string>
+#include <stdexcept>
+#include <exception>
 #include <iostream>
 #include "huffman.h"
 #include "util.h"
 
+
+using std::runtime_error;
 using std::string;
 using std::cout;
 using std::endl;
@@ -45,41 +49,76 @@ static void usage(FILE *out) {
       out);
 }
 
-static void run_huffman(data_buf& in_buf, bool is_seq) {
+static void run_huffman(string& infile_name, bool is_seq) {
+  // Read input file into memory
+  struct stat sbuf;
+  stat(infile_name.c_str(), &sbuf);
+  size_t file_size = sbuf.st_size;
+  FILE* in_file = fopen(infile_name.c_str(), "rb");
+  if (in_file == NULL) {
+    throw runtime_error("Input file does not exist.");
+  }
+  unsigned char* in_data = new unsigned char[file_size];
+  size_t read_cnt = fread(in_data, 1, file_size, in_file);
+  if (read_cnt != file_size) {
+    throw runtime_error("Cannot read entire input file");
+  }
+  fclose(in_file);
+  // Buffer that stores input file bytes
+  data_buf in_buf(in_data, file_size);
   // Buffer that store compressed bytes
   data_buf tmp_buf;
   // Buffer that stores decompressed bytes. It should be the same as input bytes
   data_buf out_buf;
   
   // Encode input buffer to intermediate buffer
-  if (is_seq)
+  string tmpfile_name;
+  if (is_seq) {
+    tmpfile_name = "compressed_seq";
     huffman_encode_seq(in_buf, tmp_buf);
-  else
+  } else {
+    tmpfile_name = "compressed_parallel";
     huffman_encode_parallel(in_buf, tmp_buf);
+  }
   
-  // Write the intermediate result to a file called "compressed"
-  FILE* tmp_file = fopen(is_seq ? "compressed_seq" : "compressed_parallel", "wb");
+  // Write the intermediate result to the file
+  FILE* tmp_file = fopen(tmpfile_name.c_str(), "wb");
   fwrite(tmp_buf.data, 1, tmp_buf.size, tmp_file);
   fclose(tmp_file);
   
-  // Rewind the offset pointer in out_buf back to the beginning
+  // At this point input buffer can be deleted
+  delete[] in_buf.data;
+  
+  // Rewind the offset pointer in tmp_buf back to the beginning
   tmp_buf.rewind();
   
   // Decompressed the intermediate bytes back to the original bytes
-  if (is_seq)
+  string outfile_name;
+  if (is_seq) {
+    outfile_name = "decompressed_seq";
     huffman_decode_seq(tmp_buf, out_buf);
-  else
+  } else {
+    outfile_name = "decompressed_parallel";
     huffman_decode_parallel(tmp_buf, out_buf);
+  }
+  
+  // Write the decompressed bytes to the file
+  FILE* out_file = fopen(outfile_name.c_str(), "wb");
+  fwrite(out_buf.data, 1, out_buf.size, out_file);
+  fclose(out_file);
   
   // Correctness Check.
-  assert(in_buf.size == out_buf.size);
-  int res = memcmp(in_buf.data, out_buf.data, in_buf.size);
-  if (res == 0) {
+  int ret_code = system(("diff " + infile_name + " " + outfile_name).c_str());
+  if (ret_code == 0) {
     cout << "Compression result is correct!!" << endl;
-    cout << "Compression Ratio = " << tmp_buf.size * 1.0 / in_buf.size << endl;
+    cout << "Compression Ratio = " << tmp_buf.size * 1.0 / file_size << endl;
   } else {
-    cout << "Compression result is incorrect!!" << endl;
+    cout << "Error: Compression result is incorrect" << endl;
   }
+  
+  // Clean up
+  delete[] tmp_buf.data;
+  delete[] out_buf.data;
 }
 
 // Time statistics
@@ -92,7 +131,6 @@ double d_time_p[3];
 static void print_stats(double c_time[5], double d_time[3]) {
   // Print Compression Stats
   auto total_time = c_time[4] - c_time[0];
-//  cout << "*********** Compression Statistics ************" << endl;
   cout << "Compression Statistics:" << endl;
   cout << "\tTime to generate Histogram = " << c_time[1] - c_time[0] << "s, "
     << get_percentage(total_time, c_time[1]- c_time[0]) << "%"<< endl;
@@ -106,7 +144,6 @@ static void print_stats(double c_time[5], double d_time[3]) {
   
   // Print Decompression Stats
   total_time = d_time[2] - d_time[0];
-//  cout << "*********** Decompression Statistics ************" << endl;
   cout << "Decompression Statistics:" << endl;
   cout << "\tTime to generate Huffman Tree = " << d_time[1] - d_time[0] << "s, "
   << get_percentage(total_time, d_time[1]- d_time[0]) << "%" << endl;
@@ -142,36 +179,15 @@ int main(int argc, char **argv) {
     return 1;
   }
   
-  // Read input file into memory
-  struct stat sbuf;
-  stat(infile_name.c_str(), &sbuf);
-  size_t file_size = sbuf.st_size;
-  FILE* in_file = fopen(infile_name.c_str(), "rb");
-  if (in_file == NULL) {
-    cout << "Input file " << infile_name << " does not exist." << endl;
-    return 1;
-  }
-  unsigned char* in_data = new unsigned char[file_size];
-  size_t read_cnt = fread(in_data, 1, file_size, in_file);
-  if (read_cnt != file_size) {
-    cout << "Cannot read entire input file" << endl;
-    return 1;
-  }
-  fclose(in_file);
-  // Buffer that stores input file bytes
-  data_buf in_buf(in_data, file_size);
-  
-  
-  
   /************ Start Benchmarking **************/
   // Run Sequential Version
   cout << "******************** Sequential Version *******************" << endl;
-  run_huffman(in_buf, true);
+  run_huffman(infile_name, true);
   print_stats(c_time_seq, d_time_seq);
   
   // Run Parallel Version Next
   cout << "******************** Parallel Version *********************" << endl;
-  run_huffman(in_buf, false);
+  run_huffman(infile_name, false);
   print_stats(c_time_p, d_time_p);
   
   

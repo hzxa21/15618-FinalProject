@@ -42,9 +42,6 @@ struct data_buf {
   data_buf() : data(NULL), size(0), curr_offset(0) {}
   data_buf(void* i_data, size_t& i_size) :
     data((unsigned char*)i_data), size(i_size), curr_offset(0) {}
-  ~data_buf() {
-    delete[] data;
-  }
   
   // Public functions
   void write_data(void* address, size_t data_size) {
