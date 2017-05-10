@@ -27,6 +27,11 @@
 
 #endif
 
+#define NUM_CHUNKS 8
+
+int chunk_start_offset[NUM_CHUNKS];
+
+
 int huffman_encode_memory(const unsigned char *bufin,
                           uint32_t bufinlen,
                           unsigned char **pbufout,
@@ -107,11 +112,12 @@ write_code_table(int out_fd, SymbolEncoder *se, uint32_t symbol_count) {
 size_t get_out_size(data_buf in_buf, SymbolEncoder *se) {
   size_t res = 0;
   int cnt = 0;
-  omp_set_num_threads(8);
-  int output[8];
-  memset(output, 0, sizeof(output));
+  omp_set_num_threads(NUM_CHUNKS);
+  int bits_in_chunks[NUM_CHUNKS];
 #pragma omp parallel
   {
+    int tid = omp_get_thread_num();
+    bits_in_chunks[tid] = 0;
     int cnt = 0;
     #pragma omp for schedule(static) nowait
     for (int i = 0; i < in_buf.size; i++) {
@@ -119,13 +125,16 @@ size_t get_out_size(data_buf in_buf, SymbolEncoder *se) {
       huffman_code *code = (*se)[uc];
       cnt += code->numbits;
     }
-    output[omp_get_thread_num()] = cnt;
+    bits_in_chunks[tid] = cnt;
   }
+
+  // TODO: Compute prefix sum and store in chunk_start_offsest (byte-level)
+
   for (int i=0; i<8; i++) {
     printf("%d\n", output[i]);
     res += output[i];
   }
-  res = (res+7)/8;
+  res = (res+7)/8 + NUM_CHUNKS*sizeof(int);
 
   return res;
 }
@@ -133,33 +142,39 @@ size_t get_out_size(data_buf in_buf, SymbolEncoder *se) {
 
 static int
 do_encode(data_buf& in_buf, data_buf& out_buf, SymbolEncoder *se) {
-  unsigned char curbyte = 0;
-  unsigned char curbit = 0;
-  int o_offset = 0;
+
 
   printf("Start encoding\n");
+  omp_set_num_threads(NUM_CHUNKS);
+#pragma omp parallel
+  {
+    unsigned char curbyte = 0;
+    unsigned char curbit = 0;
+    int tid = omp_get_thread_num();
+    int start_offset = chunk_start_offset[tid];
+    ((int*)(in_buf.data))[tid] = start_offset;
+    start_offset+=NUM_CHUNKS*sizeof(int);
 
-  for (int i_offset=0; i_offset<in_buf.size; i_offset++) {
-    unsigned char uc = in_buf.data[i_offset];
-    huffman_code *code = (*se)[uc];
-    unsigned long i;
-//    printf("%c", uc);
+#pragma omp for schedule(static) nowait
+    for (int i_offset = 0; i_offset < in_buf.size; i_offset++) {
+      unsigned char uc = in_buf.data[i_offset];
+      huffman_code *code = (*se)[uc];
+      unsigned long i;
 
+      for (i = 0; i < code->numbits; ++i) {
+        /* Add the current bit to curbyte. */
 
-    for (i = 0; i < code->numbits; ++i) {
-      /* Add the current bit to curbyte. */
+        curbyte |= get_bit(code->bits, i) << curbit;
 
-      curbyte |= get_bit(code->bits, i) << curbit;
-
-      /* If this byte is filled up then write it
-       * out and reset the curbit and curbyte. */
-      if (++curbit == 8) {
-        out_buf.data[o_offset++] = curbyte;
-        curbyte = 0;
-        curbit = 0;
+        /* If this byte is filled up then write it
+         * out and reset the curbit and curbyte. */
+        if (++curbit == 8) {
+          out_buf.data[start_offset++] = curbyte;
+          curbyte = 0;
+          curbit = 0;
+        }
       }
     }
-  }
 
   /*
    * If there is data in curbyte that has not been
@@ -167,8 +182,11 @@ do_encode(data_buf& in_buf, data_buf& out_buf, SymbolEncoder *se) {
    * character did not fall on a byte boundary,
    * then output it.
    */
-  if (curbit > 0)
-    out_buf.data[o_offset] = curbyte;
+    if (curbit > 0)
+      out_buf.data[start_offset] = curbyte;
+  }
+
+
 
   return 0;
 }
@@ -240,6 +258,7 @@ huffman_encode(const char *file_in, const char* file_out) {
   SymbolEncoder *se;
   huffman_node *root = NULL;
   unsigned int symbol_count;
+  memset(chunk_start_offset, 0, sizeof(chunk_start_offset));
 
   struct stat sbuf;
   stat(file_in, &sbuf);
