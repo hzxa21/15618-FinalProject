@@ -12,6 +12,7 @@
 #include <string>
 #include <iostream>
 #include "huffman.h"
+#include "util.h"
 
 using std::string;
 using std::cout;
@@ -73,10 +74,45 @@ static void run_huffman(data_buf& in_buf, bool is_seq) {
   // Correctness Check.
   assert(in_buf.size == out_buf.size);
   int res = memcmp(in_buf.data, out_buf.data, in_buf.size);
-  if (res == 0)
+  if (res == 0) {
     cout << "Compression result is correct!!" << endl;
-  else
+    cout << "Compression Ratio = " << tmp_buf.size * 1.0 / in_buf.size << endl;
+  } else {
     cout << "Compression result is incorrect!!" << endl;
+  }
+}
+
+// Time statistics
+double c_time_seq[5];
+double d_time_seq[3];
+double c_time_p[5];
+double d_time_p[3];
+
+// Given compress times and decompress times, print statistics
+static void print_stats(double c_time[5], double d_time[3]) {
+  // Print Compression Stats
+  auto total_time = c_time[4] - c_time[0];
+//  cout << "*********** Compression Statistics ************" << endl;
+  cout << "Compression Statistics:" << endl;
+  cout << "\tTime to generate Histogram = " << c_time[1] - c_time[0] << "s, "
+    << get_percentage(total_time, c_time[1]- c_time[0]) << "%"<< endl;
+  cout << "\tTime to generate Huffman Tree = " << c_time[2] - c_time[1] << "s, "
+    << get_percentage(total_time, c_time[2] - c_time[1]) << "%" << endl;
+  cout << "\tTime to write symbol list = " << c_time[3] - c_time[2] << "s, "
+    << get_percentage(total_time, c_time[3] - c_time[2]) << "%" << endl;
+  cout << "\tTime to compress file = " << c_time[4] - c_time[3] << "s, "
+    << get_percentage(total_time, c_time[4] - c_time[3]) << "%" << endl;
+  cout << "\tCompression Elapse time = " << total_time << "s" <<endl << endl;
+  
+  // Print Decompression Stats
+  total_time = d_time[2] - d_time[0];
+//  cout << "*********** Decompression Statistics ************" << endl;
+  cout << "Decompression Statistics:" << endl;
+  cout << "\tTime to generate Huffman Tree = " << d_time[1] - d_time[0] << "s, "
+  << get_percentage(total_time, d_time[1]- d_time[0]) << "%" << endl;
+  cout << "\tTime to decompress file = " << d_time[2] - d_time[1] << "s, "
+  << get_percentage(total_time, d_time[2]- d_time[1]) << "%" << endl;
+  cout << "\tDecompression Elapse time = " << total_time << "s" << endl << endl;
 }
 
 int main(int argc, char **argv) {
@@ -128,15 +164,28 @@ int main(int argc, char **argv) {
   
   
   /************ Start Benchmarking **************/
-  // Run Sequential Version First
-  cout << "Running Sequential Version" << endl;
+  // Run Sequential Version
+  cout << "******************** Sequential Version *******************" << endl;
   run_huffman(in_buf, true);
-  
-  cout << endl;
+  print_stats(c_time_seq, d_time_seq);
   
   // Run Parallel Version Next
-  cout << "Running Parallel Version" << endl;
+  cout << "******************** Parallel Version *********************" << endl;
   run_huffman(in_buf, false);
+  print_stats(c_time_p, d_time_p);
+  
+  
+  // Print environment setup and speedup
+  cout << "************************* Summary *************************" << endl;
+  cout << "Number of threads: " << NUM_CHUNKS << endl;
+  double total_c_time_seq = c_time_seq[4] - c_time_seq[0];
+  double total_c_time_p = c_time_p[4] - c_time_p[0];
+  cout << "Compression speedup: " << total_c_time_seq / total_c_time_p << endl;
+  double total_d_time_seq = d_time_seq[2] - d_time_seq[0];
+  double total_d_time_p = d_time_p[2] - d_time_p[0];
+  cout << "Decompression speedup: " << total_d_time_seq / total_d_time_p << endl;
+  cout << "Total speedup: " << (total_c_time_seq + total_d_time_seq) /
+      (total_c_time_p + total_d_time_p) << endl;
   
   return 0;
 }

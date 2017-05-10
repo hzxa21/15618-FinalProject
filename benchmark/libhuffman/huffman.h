@@ -79,7 +79,15 @@ int huffman_encode_seq(data_buf& in_buf, data_buf& out_buf);
 int huffman_decode_seq(data_buf& in_buf, data_buf& out_buf);
 
 // Parallel Version
+#define NUM_CHUNKS 2
 int huffman_encode_parallel(data_buf& in_buf, data_buf& out_buf);
 int huffman_decode_parallel(data_buf& in_buf, data_buf& out_buf);
+
+// Time statistics
+extern double c_time_seq[5];
+extern double d_time_seq[3];
+extern double c_time_p[5];
+extern double d_time_p[3];
+
 
 #endif
