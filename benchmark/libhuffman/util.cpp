@@ -6,6 +6,11 @@
 #include "util.h"
 
 
+// Return a integer represent the percentage. Range [0, 100]
+int get_percentage(double total, double partial) {
+  return (int)((partial / total) * 100);
+}
+
 unsigned long
 numbytes_from_numbits(unsigned long numbits) {
   return numbits / 8 + (numbits % 8 ? 1 : 0);
@@ -252,7 +257,7 @@ calculate_huffman_codes(SymbolFrequencies *pSF) {
   }
 
   auto endTime2 = CycleTimer::currentSeconds();
-  std::cout << "Build Tree Elapse time = " << endTime2 - endTime1 << std::endl;
+//  std::cout << "Build Tree Elapse time = " << endTime2 - endTime1 << std::endl;
 
   /* Build the SymbolEncoder array from the tree. */
   pSE = (SymbolEncoder *) malloc(sizeof(SymbolEncoder));
@@ -260,6 +265,6 @@ calculate_huffman_codes(SymbolFrequencies *pSF) {
   build_symbol_encoder((*pSF)[0], pSE);
 
   auto endTime3 = CycleTimer::currentSeconds();
-  std::cout << "Construct Code Elapse time = " << endTime3 - endTime2 << std::endl;
+//  std::cout << "Construct Code Elapse time = " << endTime3 - endTime2 << std::endl;
   return pSE;
 }

@@ -1,6 +1,8 @@
 #pragma once
 #include "huffman.h"
 
+int get_percentage(double total, double partial);
+
 unsigned long
 numbytes_from_numbits(unsigned long numbits);
 
