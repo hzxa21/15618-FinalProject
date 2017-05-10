@@ -96,7 +96,7 @@ static void write_code_table_memory(data_buf& out_data_buf,
 }
 
 
-static size_t get_out_size(data_buf in_buf, SymbolEncoder *se) {
+static size_t get_out_size(data_buf& in_buf, SymbolEncoder *se) {
   size_t res = 0;
   
   // Calculate the size of symbol metadata
