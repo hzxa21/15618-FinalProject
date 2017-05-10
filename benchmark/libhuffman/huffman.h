@@ -49,6 +49,16 @@ struct data_buf {
     curr_offset += data_size;
   }
   
+  void read_data(void* address, size_t data_size) {
+    assert(curr_offset + data_size <= size);
+    memcpy(address, data + curr_offset, data_size);
+    curr_offset += data_size;
+  }
+  
+  void rewind() {
+    curr_offset = 0;
+  }
+  
   // Data Variables
   unsigned char* data;
   size_t size;
@@ -72,6 +82,6 @@ int huffman_decode_memory(const unsigned char *bufin,
 						  uint32_t *pbufoutlen);
 
 int huffman_encode(data_buf& in_buf, data_buf& out_buf);
-int huffman_decode(const char*, const char*);
+int huffman_decode(data_buf& in_buf, data_buf& out_buf);
 
 #endif

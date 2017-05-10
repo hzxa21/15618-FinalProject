@@ -1154,41 +1154,37 @@ do_encode(data_buf& in_buf, data_buf& out_buf, SymbolEncoder *se) {
   return 0;
 }
 
-static huffman_node *
-read_code_table(data_buf& buf, unsigned int *pDataBytes, size_t& cur_offset) {
-  huffman_node *root = new_nonleaf_node(0, NULL, NULL);
-  uint32_t count = *((uint32_t*)(buf.data+cur_offset));
-  cur_offset+=sizeof(uint32_t);
-
+huffman_node * read_code_table_memory(data_buf& buf, unsigned int& num_bytes) {
+  // Read number of symbol count
+  uint32_t count;
+  buf.read_data(&count, sizeof(count));
   count = ntohl(count);
 
-  *pDataBytes = ntohl(  *pDataBytes = *((unsigned int*)(buf.data+cur_offset)));
-  cur_offset+=sizeof(unsigned int);
+  // Read number of bytes in the original file
+  buf.read_data(&num_bytes, sizeof(num_bytes));
+  num_bytes = ntohl(num_bytes);
 
-  /* Read the entries. */
+  // Read the symbols and build huffman tree
+  huffman_node *root = new_nonleaf_node(0, NULL, NULL);
   while (count-- > 0) {
-    int c;
-    unsigned int curbit;
-    unsigned char symbol;
-    unsigned char numbits;
-    unsigned char numbytes;
-    unsigned char *bytes;
     huffman_node *p = root;
+    
+    // Read the symbol
+    unsigned char symbol;
+    buf.read_data(&symbol, sizeof(symbol));
 
-    symbol = buf.data[cur_offset++];
-    numbits = buf.data[cur_offset++];
-    numbytes = (unsigned char) numbytes_from_numbits(numbits);
-    bytes = (unsigned char *) malloc(numbytes);
-    memcpy(bytes, buf.data+cur_offset, numbytes);
-    cur_offset+=numbytes;
-
-    /*
-     * Add the entry to the Huffman tree. The value
-     * of the current bit is used switch between
-     * zero and one child nodes in the tree. New nodes
-     * are added as needed in the tree.
-     */
-    for (curbit = 0; curbit < numbits; ++curbit) {
+    // Read number of symbol bits
+    unsigned char numbits;
+    buf.read_data(&numbits, sizeof(numbits));
+    
+    // Read the actual symbol bits
+    unsigned char numbytes = (unsigned char) numbytes_from_numbits(numbits);
+    unsigned char *bytes = new unsigned char[numbytes];
+    buf.read_data(bytes, numbytes);
+    
+    // Traverse the huffman tree based on symbol bits
+    // Create intermediate nodes and leaf nodes if missing
+    for (unsigned int curbit = 0; curbit < numbits; ++curbit) {
       if (get_bit(bytes, curbit)) {
         if (p->one == NULL) {
           p->one = curbit == (unsigned char) (numbits - 1)
@@ -1208,20 +1204,20 @@ read_code_table(data_buf& buf, unsigned int *pDataBytes, size_t& cur_offset) {
       }
     }
 
-    free(bytes);
+    delete[] bytes;
   }
 
   return root;
 }
                      
 int huffman_encode(data_buf& in_data_buf, data_buf& out_data_buf) {
-  /* Get the frequency of each symbol in the input file. */
+  // Get the frequency of each symbol in the input file.
   auto startTime = CycleTimer::currentSeconds();
   SymbolFrequencies sf;
   unsigned int symbol_count = get_symbol_frequencies(&sf, in_data_buf);
   auto endTime1 = CycleTimer::currentSeconds();
   
-  /* Build an optimal table from the symbolCount. */
+  // Build an optimal table from the symbolCount.
   SymbolEncoder *se = calculate_huffman_codes(&sf);
   size_t out_size = get_out_size(in_data_buf, se);
   out_data_buf.data = new unsigned char[out_size];
@@ -1230,10 +1226,10 @@ int huffman_encode(data_buf& in_data_buf, data_buf& out_data_buf) {
   std::cout << "Out size = " << out_size << std::endl;
   auto endTime3 = CycleTimer::currentSeconds();
 
-  /* Write symbol information into out_data_buf */
+  // Write symbol information into out_data_buf
   write_code_table_memory(out_data_buf, se, symbol_count);
   
-  /* Encode file and write to out_data_buf */
+  // Encode file and write to out_data_buf
   do_encode(in_data_buf, out_data_buf, se);
   
   // By now, data_buf should all be used
@@ -1241,13 +1237,13 @@ int huffman_encode(data_buf& in_data_buf, data_buf& out_data_buf) {
   
   auto endTime4 = CycleTimer::currentSeconds();
   
-  /* Output statistics */
+  // Output statistics
   std::cout << "Gen Histogram Elapse time = " << endTime1 - startTime << std::endl;
   std::cout << "Compress File Elapse time = " << endTime4 - endTime3 << std::endl;
   std::cout << "Total Elapse time = " << endTime4 - startTime << std::endl;
-  printf("Compress Ratio = %f\n", out_size * 1.0 / in_data_buf.size);
+  std::cout << "Compress Ratio = " << out_size * 1.0 / in_data_buf.size << std::endl;
 
-  /* Free the Huffman tree. */
+  // Free the Huffman tree.
   free_huffman_tree(sf[0]);
   free_encoder(se);
   
@@ -1255,50 +1251,36 @@ int huffman_encode(data_buf& in_data_buf, data_buf& out_data_buf) {
 }
 
 
-int
-huffman_decode(const char* file_in, const char* file_out) {
-  huffman_node *root, *p;
-  int c;
+int huffman_decode(data_buf& in_data_buf, data_buf& out_data_buf) {
+  // Read the symbol list from input buffer and build Huffman Tree
   unsigned int data_count;
+  huffman_node *root = read_code_table_memory(in_data_buf, data_count);
 
-  /* Read the Huffman code table. */
-  struct stat sbuf;
-  stat(file_in, &sbuf);
-  size_t in_size = sbuf.st_size;
-  printf("In size = %ld\n", in_size);
-  int in_fd = open(file_in, O_RDONLY);
-  void* in_data = mmap(NULL, in_size, PROT_READ, MAP_SHARED, in_fd, 0);
-  auto in_data_buf = data_buf(in_data, in_size);
-  size_t cur_offset = 0;
-  root = read_code_table(in_data_buf, &data_count, cur_offset);
-  if (!root)
-    return 1;
-
-  /* Decode the file. */
-  p = root;
-  size_t out_size = data_count;
-  void* out_data = malloc(out_size);
-  auto out_data_buf = data_buf(out_data, out_size);
-  size_t o_offset = 0;
+  // Initialize output buffer
+  out_data_buf.data = new unsigned char[data_count];
+  out_data_buf.size = data_count;
+  out_data_buf.curr_offset = 0;
+  
+  // Decode the file using Huffman Tree
+  huffman_node *p = root;
   while (data_count > 0) {
-    unsigned char byte = in_data_buf.data[cur_offset++];
+    unsigned char byte;
+    in_data_buf.read_data(&byte, sizeof(byte));
+    
     unsigned char mask = 1;
     while (data_count > 0 && mask) {
       p = byte & mask ? p->one : p->zero;
       mask <<= 1;
 
       if (p->isLeaf) {
-        out_data_buf.data[o_offset++] = p->symbol;
+        out_data_buf.write_data(&p->symbol, sizeof(p->symbol));
         p = root;
         --data_count;
       }
     }
   }
 
-  int out_fd = open(file_out, O_WRONLY);
-  write(out_fd, out_data, out_size);
-  close(out_fd);
-
+  // Free the Huffman Tree
   free_huffman_tree(root);
   return 0;
 }
