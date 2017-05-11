@@ -353,7 +353,6 @@ int huffman_encode_parallel(
   c_time[4] = CycleTimer::currentSeconds();
   printf("[DEBUG] Finish Compression\n");
 
-  cout << "Compress Ratio = " << out_data_buf.size * 1.0 / in_data_buf.size << endl;
   /* Free the Huffman tree. */
   delete[] compressed_chunk_start_offset;
   free_huffman_tree(sf[0]);

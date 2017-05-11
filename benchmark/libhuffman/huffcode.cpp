@@ -114,6 +114,8 @@ static void run_huffman(
     huffman_decode_parallel(tmp_buf, out_buf, type, num_of_threads);
   }
 
+  cout << "Compression Ratio = " << tmp_buf.size * 1.0 / file_size << endl;
+
   if (check_correctness) {
     // Write the decompressed bytes to the file
     FILE* out_file = fopen(outfile_name.c_str(), "wb");
@@ -124,7 +126,6 @@ static void run_huffman(
     int ret_code = system(("diff " + infile_name + " " + outfile_name).c_str());
     if (ret_code == 0) {
       cout << "Compression result is correct!!" << endl;
-      cout << "Compression Ratio = " << tmp_buf.size * 1.0 / file_size << endl;
     } else {
       cout << "Error: Compression result is incorrect" << endl;
     }
