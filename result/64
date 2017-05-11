@@ -1,0 +1,56 @@
+******************** Sequential Version *******************
+Compression result is correct!!
+Compression Ratio = 0.655215
+Compression Statistics:
+    Time to generate Histogram = 4.84398s, 8%
+    Time to generate Huffman Tree = 6.45715s, 11%
+    Time to write symbol list = 7.16746e-06s, 0%
+    Time to compress file = 45.862s, 80%
+    Compression Elapse time = 57.1632s
+
+Decompression Statistics:
+    Time to generate Huffman Tree = 3.89852e-05s, 0%
+    Time to decompress file = 34.1446s, 99%
+    Decompression Elapse time = 34.1446s
+
+******************** Parallel Version (OPENMP_NAIVE)*********************
+Compression result is correct!!
+Compression Ratio = 0.655215
+Compression Statistics:
+    Time to generate Histogram = 3.89574s, 72%
+    Time to generate Huffman Tree = 0.062683s, 1%
+    Time to write symbol list = 5.8338e-06s, 0%
+    Time to compress file = 1.4271s, 26%
+    Compression Elapse time = 5.38552s
+
+Decompression Statistics:
+    Time to generate Huffman Tree = 5.06174e-05s, 0%
+    Time to decompress file = 0.906845s, 99%
+    Decompression Elapse time = 0.906896s
+
+************************* Summary *************************
+Number of threads: 64
+Compression speedup: 10.6142
+Decompression speedup: 37.65
+Total speedup: 14.5108
+
+******************** Parallel Version (OPENMP_ParallelHistogram)*********************
+Compression result is correct!!
+Compression Ratio = 0.655215
+Compression Statistics:
+    Time to generate Histogram = 0.0733119s, 4%
+    Time to generate Huffman Tree = 0.0563678s, 3%
+    Time to write symbol list = 8.82149e-06s, 0%
+    Time to compress file = 1.38814s, 91%
+    Compression Elapse time = 1.51783s
+
+Decompression Statistics:
+    Time to generate Huffman Tree = 5.38658e-05s, 0%
+    Time to decompress file = 0.879537s, 99%
+    Decompression Elapse time = 0.879591s
+
+************************* Summary *************************
+Number of threads: 64
+Compression speedup: 3.54817
+Decompression speedup: 1.03104
+Total speedup: 2.62466

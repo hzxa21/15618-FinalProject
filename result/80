@@ -1,0 +1,56 @@
+******************** Sequential Version *******************
+Compression result is correct!!
+Compression Ratio = 0.655215
+Compression Statistics:
+    Time to generate Histogram = 4.81683s, 8%
+    Time to generate Huffman Tree = 6.47701s, 11%
+    Time to write symbol list = 7.26059e-06s, 0%
+    Time to compress file = 45.8901s, 80%
+    Compression Elapse time = 57.1839s
+
+Decompression Statistics:
+    Time to generate Huffman Tree = 3.95272e-05s, 0%
+    Time to decompress file = 34.0676s, 99%
+    Decompression Elapse time = 34.0676s
+
+******************** Parallel Version (OPENMP_NAIVE)*********************
+Compression result is correct!!
+Compression Ratio = 0.655215
+Compression Statistics:
+    Time to generate Histogram = 3.86769s, 75%
+    Time to generate Huffman Tree = 0.055896s, 1%
+    Time to write symbol list = 2.28435e-05s, 0%
+    Time to compress file = 1.17887s, 23%
+    Compression Elapse time = 5.10247s
+
+Decompression Statistics:
+    Time to generate Huffman Tree = 5.06863e-05s, 0%
+    Time to decompress file = 0.747135s, 99%
+    Decompression Elapse time = 0.747186s
+
+************************* Summary *************************
+Number of threads: 80
+Compression speedup: 11.2071
+Decompression speedup: 45.5946
+Total speedup: 15.5995
+
+******************** Parallel Version (OPENMP_ParallelHistogram)*********************
+Compression result is correct!!
+Compression Ratio = 0.655215
+Compression Statistics:
+    Time to generate Histogram = 0.0569999s, 4%
+    Time to generate Huffman Tree = 0.0445191s, 3%
+    Time to write symbol list = 7.65175e-06s, 0%
+    Time to compress file = 1.18254s, 92%
+    Compression Elapse time = 1.28407s
+
+Decompression Statistics:
+    Time to generate Huffman Tree = 5.61122e-05s, 0%
+    Time to decompress file = 0.712628s, 99%
+    Decompression Elapse time = 0.712684s
+
+************************* Summary *************************
+Number of threads: 80
+Compression speedup: 3.97368
+Decompression speedup: 1.04841
+Total speedup: 2.92959

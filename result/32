@@ -1,0 +1,56 @@
+******************** Sequential Version *******************
+Compression result is correct!!
+Compression Ratio = 0.655215
+Compression Statistics:
+    Time to generate Histogram = 4.83771s, 8%
+    Time to generate Huffman Tree = 6.47198s, 11%
+    Time to write symbol list = 7.16001e-06s, 0%
+    Time to compress file = 45.8689s, 80%
+    Compression Elapse time = 57.1786s
+
+Decompression Statistics:
+    Time to generate Huffman Tree = 4.54467e-05s, 0%
+    Time to decompress file = 34.3605s, 99%
+    Decompression Elapse time = 34.3605s
+
+******************** Parallel Version (OPENMP_NAIVE)*********************
+Compression result is correct!!
+Compression Ratio = 0.655215
+Compression Statistics:
+    Time to generate Histogram = 3.84839s, 57%
+    Time to generate Huffman Tree = 0.105134s, 1%
+    Time to write symbol list = 5.9884e-06s, 0%
+    Time to compress file = 2.68458s, 40%
+    Compression Elapse time = 6.63811s
+
+Decompression Statistics:
+    Time to generate Huffman Tree = 5.25825e-05s, 0%
+    Time to decompress file = 1.64389s, 99%
+    Decompression Elapse time = 1.64394s
+
+************************* Summary *************************
+Number of threads: 32
+Compression speedup: 8.61368
+Decompression speedup: 20.9013
+Total speedup: 11.0527
+
+******************** Parallel Version (OPENMP_ParallelHistogram)*********************
+Compression result is correct!!
+Compression Ratio = 0.655215
+Compression Statistics:
+    Time to generate Histogram = 0.126539s, 4%
+    Time to generate Huffman Tree = 0.101423s, 3%
+    Time to write symbol list = 6.25849e-06s, 0%
+    Time to compress file = 2.53267s, 91%
+    Compression Elapse time = 2.76064s
+
+Decompression Statistics:
+    Time to generate Huffman Tree = 5.69932e-05s, 0%
+    Time to decompress file = 1.6368s, 99%
+    Decompression Elapse time = 1.63686s
+
+************************* Summary *************************
+Number of threads: 32
+Compression speedup: 2.40456
+Decompression speedup: 1.00433
+Total speedup: 1.88336

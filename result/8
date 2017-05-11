@@ -1,0 +1,56 @@
+******************** Sequential Version *******************
+Compression result is correct!!
+Compression Ratio = 0.655215
+Compression Statistics:
+    Time to generate Histogram = 4.79416s, 8%
+    Time to generate Huffman Tree = 6.45074s, 11%
+    Time to write symbol list = 6.32741e-06s, 0%
+    Time to compress file = 46.0479s, 80%
+    Compression Elapse time = 57.2929s
+
+Decompression Statistics:
+    Time to generate Huffman Tree = 4.08981e-05s, 0%
+    Time to decompress file = 34.1201s, 99%
+    Decompression Elapse time = 34.1202s
+
+******************** Parallel Version (OPENMP_NAIVE)*********************
+Compression result is correct!!
+Compression Ratio = 0.655215
+Compression Statistics:
+    Time to generate Histogram = 3.86032s, 36%
+    Time to generate Huffman Tree = 0.213892s, 2%
+    Time to write symbol list = 5.89155e-06s, 0%
+    Time to compress file = 6.44622s, 61%
+    Compression Elapse time = 10.5204s
+
+Decompression Statistics:
+    Time to generate Huffman Tree = 4.86467e-05s, 0%
+    Time to decompress file = 4.82734s, 99%
+    Decompression Elapse time = 4.82739s
+
+************************* Summary *************************
+Number of threads: 8
+Compression speedup: 5.44586
+Decompression speedup: 7.06804
+Total speedup: 5.95609
+
+******************** Parallel Version (OPENMP_ParallelHistogram)*********************
+Compression result is correct!!
+Compression Ratio = 0.655215
+Compression Statistics:
+    Time to generate Histogram = 0.264376s, 3%
+    Time to generate Huffman Tree = 0.208734s, 3%
+    Time to write symbol list = 6.17467e-06s, 0%
+    Time to compress file = 6.42399s, 93%
+    Compression Elapse time = 6.89711s
+
+Decompression Statistics:
+    Time to generate Huffman Tree = 4.83748e-05s, 0%
+    Time to decompress file = 4.79418s, 99%
+    Decompression Elapse time = 4.79423s
+
+************************* Summary *************************
+Number of threads: 8
+Compression speedup: 1.52534
+Decompression speedup: 1.00692
+Total speedup: 1.31275

@@ -1,0 +1,56 @@
+******************** Sequential Version *******************
+Compression result is correct!!
+Compression Ratio = 0.655215
+Compression Statistics:
+    Time to generate Histogram = 4.81714s, 8%
+    Time to generate Huffman Tree = 6.46333s, 11%
+    Time to write symbol list = 7.74115e-06s, 0%
+    Time to compress file = 46.007s, 80%
+    Compression Elapse time = 57.2875s
+
+Decompression Statistics:
+    Time to generate Huffman Tree = 4.45861e-05s, 0%
+    Time to decompress file = 34.1274s, 99%
+    Decompression Elapse time = 34.1275s
+
+******************** Parallel Version (OPENMP_NAIVE)*********************
+Compression result is correct!!
+Compression Ratio = 0.655215
+Compression Statistics:
+    Time to generate Histogram = 3.84377s, 52%
+    Time to generate Huffman Tree = 0.205801s, 2%
+    Time to write symbol list = 5.98468e-06s, 0%
+    Time to compress file = 3.29243s, 44%
+    Compression Elapse time = 7.34201s
+
+Decompression Statistics:
+    Time to generate Huffman Tree = 5.43594e-05s, 0%
+    Time to decompress file = 2.42324s, 99%
+    Decompression Elapse time = 2.42329s
+
+************************* Summary *************************
+Number of threads: 16
+Compression speedup: 7.80269
+Decompression speedup: 14.0831
+Total speedup: 9.3612
+
+******************** Parallel Version (OPENMP_ParallelHistogram)*********************
+Compression result is correct!!
+Compression Ratio = 0.655215
+Compression Statistics:
+    Time to generate Histogram = 0.244033s, 6%
+    Time to generate Huffman Tree = 0.203389s, 5%
+    Time to write symbol list = 7.03521e-06s, 0%
+    Time to compress file = 3.3521s, 88%
+    Compression Elapse time = 3.79953s
+
+Decompression Statistics:
+    Time to generate Huffman Tree = 5.44209e-05s, 0%
+    Time to decompress file = 2.5305s, 99%
+    Decompression Elapse time = 2.53056s
+
+************************* Summary *************************
+Number of threads: 16
+Compression speedup: 1.93235
+Decompression speedup: 0.957611
+Total speedup: 1.54268
