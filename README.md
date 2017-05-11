@@ -1,5 +1,6 @@
 # Final Checkpoint & Preliminary Result
-![](https://drive.google.com/file/d/0B3pebevIydtzcXhwWFRaR0R1OWM/view?usp=sharing)
+![](https://raw.githubusercontent.com/hzxa21/15618-FinalProject/master/result/Speeup.png?token=AFQ05kXhtPEQfoj6OwCFKcoVMxhRYBR1ks5ZHWhswA%3D%3D)
+![](https://raw.githubusercontent.com/hzxa21/15618-FinalProject/master/result/CompressionTime.png?token=AFQ05hnTC-686TBjZuATNWBCPjG-k-pTks5ZHWiKwA%3D%3D)
 
 ---------------------------------------
 # Project Middle Checkpoint (Apr 25th)
