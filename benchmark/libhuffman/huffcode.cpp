@@ -50,6 +50,7 @@ static void usage(FILE *out) {
       "-i - input file. Will compress and decompress it\n"
       "-h - print usage information\n"
       "-c - check correctness (will output file to disk)\n"
+          "-p - PrintTable\n"
       "-r - read seq_time cache\n",
       out);
 }
@@ -141,28 +142,43 @@ double c_time[5];
 double d_time[3];
 
 // Given compress times and decompress times, print statistics
-static void print_stats(double c_time[5], double d_time[3]) {
+static void print_stats(double c_time[5], double d_time[3], bool table) {
   // Print Compression Stats
-  auto total_time = c_time[4] - c_time[0];
-  cout << "Compression Statistics:" << endl;
-  cout << "\tTime to generate Histogram = " << c_time[1] - c_time[0] << "s, "
-    << get_percentage(total_time, c_time[1]- c_time[0]) << "%"<< endl;
-  cout << "\tTime to generate Huffman Tree = " << c_time[2] - c_time[1] << "s, "
-    << get_percentage(total_time, c_time[2] - c_time[1]) << "%" << endl;
-  cout << "\tTime to write symbol list = " << c_time[3] - c_time[2] << "s, "
-    << get_percentage(total_time, c_time[3] - c_time[2]) << "%" << endl;
-  cout << "\tTime to compress file = " << c_time[4] - c_time[3] << "s, "
-    << get_percentage(total_time, c_time[4] - c_time[3]) << "%" << endl;
-  cout << "\tCompression Elapse time = " << total_time << "s" <<endl << endl;
-  
-  // Print Decompression Stats
-  total_time = d_time[2] - d_time[0];
-  cout << "Decompression Statistics:" << endl;
-  cout << "\tTime to generate Huffman Tree = " << d_time[1] - d_time[0] << "s, "
-  << get_percentage(total_time, d_time[1]- d_time[0]) << "%" << endl;
-  cout << "\tTime to decompress file = " << d_time[2] - d_time[1] << "s, "
-  << get_percentage(total_time, d_time[2]- d_time[1]) << "%" << endl;
-  cout << "\tDecompression Elapse time = " << total_time << "s" << endl << endl;
+  if (!table) {
+    auto total_time = c_time[4] - c_time[0];
+    cout << "Compression Statistics:" << endl;
+    cout << "\tTime to generate Histogram = " << c_time[1] - c_time[0] << "s, "
+         << get_percentage(total_time, c_time[1] - c_time[0]) << "%" << endl;
+    cout << "\tTime to generate Huffman Tree = " << c_time[2] - c_time[1] << "s, "
+         << get_percentage(total_time, c_time[2] - c_time[1]) << "%" << endl;
+    cout << "\tTime to write symbol list = " << c_time[3] - c_time[2] << "s, "
+         << get_percentage(total_time, c_time[3] - c_time[2]) << "%" << endl;
+    cout << "\tTime to compress file = " << c_time[4] - c_time[3] << "s, "
+         << get_percentage(total_time, c_time[4] - c_time[3]) << "%" << endl;
+    cout << "\tCompression Elapse time = " << total_time << "s" << endl << endl;
+
+    // Print Decompression Stats
+    total_time = d_time[2] - d_time[0];
+    cout << "Decompression Statistics:" << endl;
+    cout << "\tTime to generate Huffman Tree = " << d_time[1] - d_time[0] << "s, "
+         << get_percentage(total_time, d_time[1] - d_time[0]) << "%" << endl;
+    cout << "\tTime to decompress file = " << d_time[2] - d_time[1] << "s, "
+         << get_percentage(total_time, d_time[2] - d_time[1]) << "%" << endl;
+    cout << "\tDecompression Elapse time = " << total_time << "s" << endl << endl;
+  }
+  else {
+    auto total_time = c_time[4] - c_time[0];
+    cout << "Histogram,Tree,WriteSymbol,CompressFile,CompressTotal,ReadSymbol,DecompressFile,DecompressTotal" << endl;
+
+    for (int i=0;i<4;i++) {
+      cout << c_time[i+1] - c_time[i] << ",";
+    }
+    cout << total_time << ",";
+    for (int i=0;i<2;i++) {
+      cout << d_time[i+1] - d_time[i] << ",";
+    }
+    cout << d_time[2] - d_time[0] << endl;
+  }
 }
 
 static void print_summary(double c_time[5], double d_time[3], double pre_c_time[5], double pre_d_time[3]) {
@@ -186,7 +202,8 @@ int main(int argc, char **argv) {
   string infile_name;
   bool check_correctness = false;
   bool read_cachce = false;
-  while ((opt = getopt(argc, argv, "i:t:bhvmncr")) != -1) {
+  bool table = false;
+  while ((opt = getopt(argc, argv, "i:t:bhvmncrp")) != -1) {
     switch (opt) {
       case 'i':
         infile_name = string(optarg);
@@ -205,6 +222,9 @@ int main(int argc, char **argv) {
         break;
       case 'r':
         read_cachce = true;
+        break;
+      case 'p':
+        table = true;
         break;
       default:
         usage(stderr);
@@ -242,7 +262,7 @@ int main(int argc, char **argv) {
   }
   fclose(f_ptr);
 
-  print_stats(c_time, d_time);
+  print_stats(c_time, d_time, table);
 
 
   memcpy(pre_c_time, c_time, sizeof(double)*5);
@@ -251,7 +271,7 @@ int main(int argc, char **argv) {
   // Run Parallel Version Next
   cout << "******************** Parallel Version (OPENMP_NAIVE)*********************" << endl;
   run_huffman(infile_name, false, check_correctness, OPENMP_NAIVE, num_of_threads);
-  print_stats(c_time, d_time);
+  print_stats(c_time, d_time, table);
 
   print_summary(c_time, d_time, pre_c_time, pre_d_time);
 
@@ -261,7 +281,7 @@ int main(int argc, char **argv) {
   // Run Parallel Version Next
   cout << "******************** Parallel Version (OPENMP_ParallelHistogram)*********************" << endl;
   run_huffman(infile_name, false, check_correctness, OPENMP_ParallelHistogram, num_of_threads);
-  print_stats(c_time, d_time);
+  print_stats(c_time, d_time, table);
 
   print_summary(c_time, d_time, pre_c_time, pre_d_time);
 
