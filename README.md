@@ -1,5 +1,5 @@
 # Final Checkpoint & Preliminary Result
-(Coming Soon...)
+![](https://drive.google.com/file/d/0B3pebevIydtzcXhwWFRaR0R1OWM/view?usp=sharing)
 
 ---------------------------------------
 # Project Middle Checkpoint (Apr 25th)
