@@ -4,8 +4,7 @@
  *  Copyright (C) 2003  Douglas Ryan Richardson
  */
 
-#ifndef HUFFMAN_HUFFMAN_H
-#define HUFFMAN_HUFFMAN_H
+#pragma once
 
 #include <stdio.h>
 #include <stdint.h>
@@ -80,14 +79,10 @@ int huffman_encode_seq(data_buf& in_buf, data_buf& out_buf);
 int huffman_decode_seq(data_buf& in_buf, data_buf& out_buf);
 
 // Parallel Version
-#define NUM_CHUNKS 4
-int huffman_encode_parallel(data_buf& in_buf, data_buf& out_buf, parallel_type type);
-int huffman_decode_parallel(data_buf& in_buf, data_buf& out_buf, parallel_type type);
+int huffman_encode_parallel(data_buf& in_buf, data_buf& out_buf, parallel_type type, int);
+int huffman_decode_parallel(data_buf& in_buf, data_buf& out_buf, parallel_type type, int);
 
 // Time statistics
 extern double c_time[5];
 extern double d_time[3];
 
-
-
-#endif

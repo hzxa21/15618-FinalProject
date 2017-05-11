@@ -31,6 +31,8 @@ extern char *optarg;
 #include <unistd.h>
 #endif
 
+int num_of_threads = 4;
+
 
 static void version(FILE *out) {
   fputs(
@@ -46,11 +48,18 @@ static void usage(FILE *out) {
   fputs(
       "Usage: huffcode -i <input file>\n"
       "-i - input file. Will compress and decompress it\n"
-      "-h - print usage information\n",
+      "-h - print usage information\n"
+      "-c - check correctness (will output file to disk)\n"
+      "-r - read seq_time cache\n",
       out);
 }
 
-static void run_huffman(string& infile_name, bool is_seq, parallel_type type = OPENMP_NAIVE) {
+static void run_huffman(
+    string& infile_name,
+    bool is_seq,
+    bool check_correctness,
+    parallel_type type = OPENMP_NAIVE,
+    int num_of_threads = 4) {
   // Read input file into memory
   struct stat sbuf;
   stat(infile_name.c_str(), &sbuf);
@@ -79,13 +88,15 @@ static void run_huffman(string& infile_name, bool is_seq, parallel_type type = O
     huffman_encode_seq(in_buf, tmp_buf);
   } else {
     tmpfile_name = "compressed_parallel";
-    huffman_encode_parallel(in_buf, tmp_buf, type);
+    huffman_encode_parallel(in_buf, tmp_buf, type, num_of_threads);
   }
-  
-  // Write the intermediate result to the file
-  FILE* tmp_file = fopen(tmpfile_name.c_str(), "wb");
-  fwrite(tmp_buf.data, 1, tmp_buf.size, tmp_file);
-  fclose(tmp_file);
+
+  if (check_correctness) {
+    // Write the intermediate result to the file
+    FILE *tmp_file = fopen(tmpfile_name.c_str(), "wb");
+    fwrite(tmp_buf.data, 1, tmp_buf.size, tmp_file);
+    fclose(tmp_file);
+  }
   
   // At this point input buffer can be deleted
   delete[] in_buf.data;
@@ -100,21 +111,23 @@ static void run_huffman(string& infile_name, bool is_seq, parallel_type type = O
     huffman_decode_seq(tmp_buf, out_buf);
   } else {
     outfile_name = "decompressed_parallel";
-    huffman_decode_parallel(tmp_buf, out_buf, type);
+    huffman_decode_parallel(tmp_buf, out_buf, type, num_of_threads);
   }
-  
-  // Write the decompressed bytes to the file
-  FILE* out_file = fopen(outfile_name.c_str(), "wb");
-  fwrite(out_buf.data, 1, out_buf.size, out_file);
-  fclose(out_file);
-  
-  // Correctness Check.
-  int ret_code = system(("diff " + infile_name + " " + outfile_name).c_str());
-  if (ret_code == 0) {
-    cout << "Compression result is correct!!" << endl;
-    cout << "Compression Ratio = " << tmp_buf.size * 1.0 / file_size << endl;
-  } else {
-    cout << "Error: Compression result is incorrect" << endl;
+
+  if (check_correctness) {
+    // Write the decompressed bytes to the file
+    FILE* out_file = fopen(outfile_name.c_str(), "wb");
+    fwrite(out_buf.data, 1, out_buf.size, out_file);
+    fclose(out_file);
+
+    // Correctness Check.
+    int ret_code = system(("diff " + infile_name + " " + outfile_name).c_str());
+    if (ret_code == 0) {
+      cout << "Compression result is correct!!" << endl;
+      cout << "Compression Ratio = " << tmp_buf.size * 1.0 / file_size << endl;
+    } else {
+      cout << "Error: Compression result is incorrect" << endl;
+    }
   }
   
   // Clean up
@@ -154,7 +167,7 @@ static void print_stats(double c_time[5], double d_time[3]) {
 static void print_summary(double c_time[5], double d_time[3], double pre_c_time[5], double pre_d_time[3]) {
   // Print environment setup and speedup
   cout << "************************* Summary *************************" << endl;
-  cout << "Number of threads: " << NUM_CHUNKS << endl;
+  cout << "Number of threads: " << num_of_threads << endl;
   double total_c_time = c_time[4] - c_time[0];
   double pre_total_c_time = pre_c_time[4] - pre_c_time[0];
   cout << "Compression speedup: " << pre_total_c_time / total_c_time << endl;
@@ -170,10 +183,15 @@ int main(int argc, char **argv) {
   /* Get the command line arguments. */
   int opt;
   string infile_name;
-  while ((opt = getopt(argc, argv, "i:bhvmnt")) != -1) {
+  bool check_correctness = false;
+  bool read_cachce = false;
+  while ((opt = getopt(argc, argv, "i:t:bhvmncr")) != -1) {
     switch (opt) {
       case 'i':
         infile_name = string(optarg);
+        break;
+      case 't':
+        num_of_threads = atoi(optarg);
         break;
       case 'h':
         usage(stdout);
@@ -181,6 +199,12 @@ int main(int argc, char **argv) {
       case 'v':
         version(stdout);
         return 0;
+      case 'c':
+        check_correctness = true;
+        break;
+      case 'r':
+        read_cachce = true;
+        break;
       default:
         usage(stderr);
         return 1;
@@ -200,7 +224,23 @@ int main(int argc, char **argv) {
   /************ Start Benchmarking **************/
   // Run Sequential Version
   cout << "******************** Sequential Version *******************" << endl;
-  run_huffman(infile_name, true);
+  FILE* f_ptr;
+  string cache_file_name = "cache_seq_time";
+  if (access( cache_file_name.c_str(), F_OK ) == -1 || !read_cachce) {
+    run_huffman(infile_name, true, check_correctness);
+    cout << "Write Cache" << endl;
+    f_ptr = fopen(cache_file_name.c_str(), "wb");
+    fwrite(c_time, sizeof(double), 5, f_ptr);
+    fwrite(d_time, sizeof(double), 3, f_ptr);
+  }
+  else {
+    cout << "Result Cache" << endl;
+    f_ptr = fopen(cache_file_name.c_str(), "rb");
+    fread(c_time, sizeof(double), 5, f_ptr);
+    fread(d_time, sizeof(double), 3, f_ptr);
+  }
+  fclose(f_ptr);
+
   print_stats(c_time, d_time);
 
 
@@ -209,7 +249,7 @@ int main(int argc, char **argv) {
 
   // Run Parallel Version Next
   cout << "******************** Parallel Version (OPENMP_NAIVE)*********************" << endl;
-  run_huffman(infile_name, false, OPENMP_NAIVE);
+  run_huffman(infile_name, false, check_correctness, OPENMP_NAIVE, num_of_threads);
   print_stats(c_time, d_time);
 
   print_summary(c_time, d_time, pre_c_time, pre_d_time);
@@ -219,7 +259,7 @@ int main(int argc, char **argv) {
 
   // Run Parallel Version Next
   cout << "******************** Parallel Version (OPENMP_ParallelHistogram)*********************" << endl;
-  run_huffman(infile_name, false, OPENMP_ParallelHistogram);
+  run_huffman(infile_name, false, check_correctness, OPENMP_ParallelHistogram, num_of_threads);
   print_stats(c_time, d_time);
 
   print_summary(c_time, d_time, pre_c_time, pre_d_time);

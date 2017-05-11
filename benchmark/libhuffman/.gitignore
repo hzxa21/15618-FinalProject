@@ -9,3 +9,4 @@ decompress*
 objs/
 delete_data.sh
 huffman
+cache*
