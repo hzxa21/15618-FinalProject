@@ -1,0 +1,52 @@
+******************** Sequential Version *******************
+Result Cache
+Compression Statistics:
+	Time to generate Histogram = 5.63621s, 10%
+	Time to generate Huffman Tree = 2.45841s, 4%
+	Time to write symbol list = 6.97002e-06s, 0%
+	Time to compress file = 46.021s, 85%
+	Compression Elapse time = 54.1156s
+
+Decompression Statistics:
+	Time to generate Huffman Tree = 4.75887e-05s, 0%
+	Time to decompress file = 35.3463s, 99%
+	Decompression Elapse time = 35.3463s
+
+******************** Parallel Version (OPENMP_NAIVE)*********************
+Compression Statistics:
+	Time to generate Histogram = 3.11109s, 11%
+	Time to generate Huffman Tree = 0.808446s, 2%
+	Time to write symbol list = 5.60097e-06s, 0%
+	Time to compress file = 23.2779s, 85%
+	Compression Elapse time = 27.1975s
+
+Decompression Statistics:
+	Time to generate Huffman Tree = 5.49275e-05s, 0%
+	Time to decompress file = 16.1843s, 99%
+	Decompression Elapse time = 16.1843s
+
+************************* Summary *************************
+Number of threads: 2
+Compression speedup: 1.98973
+Decompression speedup: 2.18399
+Total speedup: 2.0622
+
+******************** Parallel Version (OPENMP_ParallelHistogram)*********************
+Compression Statistics:
+	Time to generate Histogram = 1.04138s, 4%
+	Time to generate Huffman Tree = 0.802371s, 3%
+	Time to write symbol list = 5.93998e-06s, 0%
+	Time to compress file = 23.5298s, 92%
+	Compression Elapse time = 25.3736s
+
+Decompression Statistics:
+	Time to generate Huffman Tree = 5.43278e-05s, 0%
+	Time to decompress file = 16.1464s, 99%
+	Decompression Elapse time = 16.1465s
+
+************************* Summary *************************
+Number of threads: 2
+Compression speedup: 1.07188
+Decompression speedup: 1.00235
+Total speedup: 1.04484
+
