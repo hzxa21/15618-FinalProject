@@ -10,3 +10,5 @@ objs/
 delete_data.sh
 huffman
 cache*
+script
+ispc*

@@ -166,7 +166,7 @@ size_t get_out_size(data_buf& in_buf, SymbolEncoder *se) {
     int tid = omp_get_thread_num();
     bytes_in_chunks[tid] = 0;
     compressed_chunk_start_offset[tid] = 0;
-    int cnt = 0;
+    size_t cnt = 0;
     #pragma omp for schedule(static) nowait
     for (size_t i = 0; i < in_buf.size; i++) {
       unsigned char uc = in_buf.data[i];
