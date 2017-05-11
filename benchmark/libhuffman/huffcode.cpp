@@ -15,12 +15,18 @@
 #include <iostream>
 #include "huffman.h"
 #include "util.h"
+//#include <thrust/scan.h>
+//#include <thrust/execution_policy.h>
+//int data[6] = {1, 0, 2, 2, 1, 3};
+//thrust::exclusive_scan(thrust::host, data, data + 6, data); // in-place scan
+#include "test_ispc.h"
 
 
 using std::runtime_error;
 using std::string;
 using std::cout;
 using std::endl;
+using namespace ispc;
 
 #ifdef WIN32
 #include <malloc.h>
@@ -287,3 +293,12 @@ int main(int argc, char **argv) {
 
   return 0;
 }
+
+// Test ispc
+//int main(int argc, char **argv) {
+//  size_t data[10] = {1,2,3,4,5,6,7,8,9,10};
+//  size_t output[10];
+//  prefix_sum(data, 10, output);
+//  for (int i=0;i<10;i++)
+//    cout << output[i] << endl;
+//}
