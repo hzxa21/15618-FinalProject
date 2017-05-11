@@ -63,7 +63,7 @@ struct data_buf {
   // Data Variables
   unsigned char* data;
   size_t size;
-  unsigned int curr_offset;
+  size_t curr_offset;
 };
 
 enum parallel_type {

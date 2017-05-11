@@ -26,14 +26,19 @@
 
 #endif
 
+//#define DEBUG
+#ifndef DEBUG
+#define printf(...)
+#endif
+
+
 using std::cout;
 using std::endl;
 
 /****************** Helper functions ***********************/
 
-static unsigned int get_symbol_frequencies(SymbolFrequencies *pSF, data_buf& buf) {
+static void get_symbol_frequencies(SymbolFrequencies *pSF, data_buf& buf) {
   int c;
-  unsigned int total_count = 0;
 
   /* Set all frequencies to 0. */
   init_frequencies(pSF);
@@ -44,14 +49,12 @@ static unsigned int get_symbol_frequencies(SymbolFrequencies *pSF, data_buf& buf
     if (!(*pSF)[uc])
       (*pSF)[uc] = new_leaf_node(uc);
     ++(*pSF)[uc]->count;
-    ++total_count;
   }
-  return total_count;
 }
 
 static void write_code_table_memory(data_buf& out_data_buf,
-                             SymbolEncoder *se,
-                             uint32_t symbol_count) {
+                                    SymbolEncoder *se,
+                                    size_t symbol_count) {
   uint32_t i, count = 0;
   
   size_t curr_offset = 0;
@@ -63,11 +66,9 @@ static void write_code_table_memory(data_buf& out_data_buf,
   }
   
   /* Write the number of entries in network byte order. */
-  i = htonl(count);
-  out_data_buf.write_data(&i, sizeof(i));
+  out_data_buf.write_data(&count, sizeof(count));
   
   /* Write the number of bytes that will be encoded. */
-  symbol_count = htonl(symbol_count);
   out_data_buf.write_data(&symbol_count, sizeof(symbol_count));
   
   /* Write the entries. */
@@ -102,8 +103,8 @@ static size_t get_out_size(data_buf& in_buf, SymbolEncoder *se) {
   // Calculate the size of symbol metadata
   // uint32_t for number of unique symbols
   res += 4;
-  // uint32_t for number of bytes in the input file
-  res += 4;
+  // uint64t for number of bytes in the input file
+  res += 8;
   for (int i = 0; i < MAX_SYMBOLS; ++i) {
     if ((*se)[i]) {
       // 1 byte for symbol, 1 byte for code bit length
@@ -114,8 +115,8 @@ static size_t get_out_size(data_buf& in_buf, SymbolEncoder *se) {
   }
   
   // Calculate the size of compressed file
-  int cnt = 0;
-  for (int i=0; i<in_buf.size; i++) {
+  size_t cnt = 0;
+  for (size_t i=0; i<in_buf.size; i++) {
     unsigned char uc = in_buf.data[i];
     huffman_code* code = (*se)[uc];
     cnt += code->numbits;
@@ -132,7 +133,7 @@ static int do_encode(data_buf& in_buf, data_buf& out_buf, SymbolEncoder *se) {
   unsigned char curbyte = 0;
   unsigned char curbit = 0;
 
-  for (int i_offset=0; i_offset<in_buf.size; i_offset++) {
+  for (size_t i_offset=0; i_offset<in_buf.size; i_offset++) {
     unsigned char uc = in_buf.data[i_offset];
     huffman_code *code = (*se)[uc];
     unsigned long i;
@@ -166,15 +167,13 @@ static int do_encode(data_buf& in_buf, data_buf& out_buf, SymbolEncoder *se) {
   return 0;
 }
 
-static huffman_node * read_code_table_memory(data_buf& buf, unsigned int& num_bytes) {
+static huffman_node * read_code_table_memory(data_buf& buf, size_t& num_bytes) {
   // Read number of symbol count
   uint32_t count;
   buf.read_data(&count, sizeof(count));
-  count = ntohl(count);
 
   // Read number of bytes in the original file
   buf.read_data(&num_bytes, sizeof(num_bytes));
-  num_bytes = ntohl(num_bytes);
 
   // Read the symbols and build huffman tree
   huffman_node *root = new_nonleaf_node(0, NULL, NULL);
@@ -224,27 +223,40 @@ static huffman_node * read_code_table_memory(data_buf& buf, unsigned int& num_by
                      
 int huffman_encode_seq(data_buf& in_data_buf, data_buf& out_data_buf) {
   c_time[0] = CycleTimer::currentSeconds();
+  printf("[DEBUG] Start Compression\n");
 
   // Get the frequency of each symbol in the input file.
   SymbolFrequencies sf;
-  unsigned int symbol_count = get_symbol_frequencies(&sf, in_data_buf);
-  
+  size_t symbol_count = in_data_buf.size;
+  printf("[DEBUG] Generate Histogram\n");
+
+  get_symbol_frequencies(&sf, in_data_buf);
+  printf("[DEBUG] Input Size = %ld\n", symbol_count);
+
   c_time[1] = CycleTimer::currentSeconds();
   
   // Build an optimal table from the symbolCount.
+  printf("[DEBUG] Construct Huffman Codes\n");
+
   SymbolEncoder *se = calculate_huffman_codes(&sf);
+  printf("[DEBUG] Get Output Size\n");
+
   size_t out_size = get_out_size(in_data_buf, se);
+  printf("[DEBUG] Output Size = %ld, new output buffer\n", out_size);
+
   out_data_buf.data = new unsigned char[out_size];
   out_data_buf.size = out_size;
   out_data_buf.curr_offset = 0;
   
   c_time[2] = CycleTimer::currentSeconds();
 
+  printf("[DEBUG] Write code table\n");
   // Write symbol information into out_data_buf
   write_code_table_memory(out_data_buf, se, symbol_count);
   
   c_time[3] = CycleTimer::currentSeconds();
-  
+  printf("[DEBUG] Compress File\n");
+
   // Encode file and write to out_data_buf
   do_encode(in_data_buf, out_data_buf, se);
   
@@ -252,7 +264,8 @@ int huffman_encode_seq(data_buf& in_data_buf, data_buf& out_data_buf) {
   assert(out_data_buf.curr_offset == out_data_buf.size);
   
   c_time[4] = CycleTimer::currentSeconds();
-  
+  printf("[DEBUG] Finish Compression\n");
+
   // Free the Huffman tree.
   free_huffman_tree(sf[0]);
   free_encoder(se);
@@ -265,7 +278,7 @@ int huffman_decode_seq(data_buf& in_data_buf, data_buf& out_data_buf) {
   d_time[0] = CycleTimer::currentSeconds();
   
   // Read the symbol list from input buffer and build Huffman Tree
-  unsigned int data_count;
+  size_t data_count;
   huffman_node *root = read_code_table_memory(in_data_buf, data_count);
   
   d_time[1] = CycleTimer::currentSeconds();
