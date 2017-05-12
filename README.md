@@ -1,7 +1,7 @@
-# Final Checkpoint & Preliminary Result
+# Final Write Up
 Experiments on Xeon Phi co-processor
 ### Speedup
-![](https://raw.githubusercontent.com/hzxa21/15618-FinalProject/master/result/Speeup.png?token=AFQ05kXhtPEQfoj6OwCFKcoVMxhRYBR1ks5ZHWhswA%3D%3D)
+![](https://raw.githubusercontent.com/hzxa21/15618-FinalProject/master/result/Speeup.png?token=AFQ05kXhtPEQfoj6OwCFKcoVMxhRYBR1ks5ZHWhswA%3D%3D "title")
 ### Compression Time
 ![](https://raw.githubusercontent.com/hzxa21/15618-FinalProject/master/result/CompressionTime.png?token=AFQ05hnTC-686TBjZuATNWBCPjG-k-pTks5ZHWiKwA%3D%3D)
 
