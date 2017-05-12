@@ -1,0 +1,22 @@
+Histogram,Tree,WriteSymbol,CompressFile,CompressTotal,ReadSymbol,DecompressFile,DecompressTotal
+74.9316,29.4099,1.653e-05,365.257,469.599,0.00016702,263.202,263.202
+******************** Parallel Version (OPENMP_NAIVE)*********************
+Compression Ratio = 0.590752
+Histogram,Tree,WriteSymbol,CompressFile,CompressTotal,ReadSymbol,DecompressFile,DecompressTotal
+49.1126,0.511933,1.44094e-05,5.70704,55.3316,0.00015599,4.10125,4.1014
+************************* Summary *************************
+Number of threads: 128
+Compression speedup: 8.48698
+Decompression speedup: 64.1737
+Total speedup: 12.3299
+
+******************** Parallel Version (OPENMP_ParallelHistogram)*********************
+Compression Ratio = 0.590752
+Histogram,Tree,WriteSymbol,CompressFile,CompressTotal,ReadSymbol,DecompressFile,DecompressTotal
+0.405771,0.509968,1.45203e-05,5.71232,6.62807,0.00015729,4.09954,4.0997
+************************* Summary *************************
+Number of threads: 128
+Compression speedup: 70.8499
+Decompression speedup: 64.2004
+Total speedup: 68.3088
+

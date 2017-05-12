@@ -1,0 +1,1 @@
+/var/spool/PBS/mom_priv/jobs/14586.iam-pbs1.SC: line 8: 263418 Floating point exception(core dumped) $PR_PATH -i $DATA_PATH -t $NUM_T -p

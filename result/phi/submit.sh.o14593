@@ -1,0 +1,3 @@
+Histogram,Tree,WriteSymbol,CompressFile,CompressTotal,ReadSymbol,DecompressFile,DecompressTotal
+74.9316,29.4099,1.653e-05,365.257,469.599,0.00016702,263.202,263.202
+******************** Parallel Version (OPENMP_NAIVE)*********************

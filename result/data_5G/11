@@ -1,0 +1,109 @@
+******************** Sequential Version *******************
+Result Cache
+Compression Statistics:
+	Time to generate Histogram = 13.9999s, 9%
+	Time to generate Huffman Tree = 6.0659s, 4%
+	Time to write symbol list = 7.67037e-06s, 0%
+	Time to compress file = 126.247s, 86%
+	Compression Elapse time = 146.312s
+
+Decompression Statistics:
+	Time to generate Huffman Tree = 4.99673e-05s, 0%
+	Time to decompress file = 106.258s, 99%
+	Decompression Elapse time = 106.258s
+
+******************** Parallel Version (OPENMP_NAIVE)*********************
+Thread 0 takes 11.7878s to encode chunk
+Thread 1 takes 11.6977s to encode chunk
+Thread 2 takes 11.6274s to encode chunk
+Thread 3 takes 11.6083s to encode chunk
+Thread 4 takes 11.6982s to encode chunk
+Thread 5 takes 11.7042s to encode chunk
+Thread 6 takes 11.7247s to encode chunk
+Thread 7 takes 11.7297s to encode chunk
+Thread 8 takes 11.6629s to encode chunk
+Thread 9 takes 11.5478s to encode chunk
+Thread 10 takes 11.6699s to encode chunk
+Thread 0 takes 9.49411s to decode chunk
+Thread 1 takes 9.46083s to decode chunk
+Thread 2 takes 9.36754s to decode chunk
+Thread 3 takes 9.35558s to decode chunk
+Thread 4 takes 9.45261s to decode chunk
+Thread 5 takes 9.44418s to decode chunk
+Thread 6 takes 9.48494s to decode chunk
+Thread 7 takes 9.53688s to decode chunk
+Thread 8 takes 9.41597s to decode chunk
+Thread 9 takes 9.17416s to decode chunk
+Thread 10 takes 9.38828s to decode chunk
+Compression Ratio = 0.590752
+Compression Statistics:
+	Time to generate Histogram = 8.30462s, 40%
+	Time to generate Huffman Tree = 0.395258s, 1%
+	Time to write symbol list = 6.88806e-06s, 0%
+	Time to compress file = 11.7879s, 57%
+	Compression Elapse time = 20.4878s
+
+Decompression Statistics:
+	Time to generate Huffman Tree = 6.1037e-05s, 0%
+	Time to decompress file = 9.53708s, 99%
+	Decompression Elapse time = 9.53714s
+
+************************* Summary *************************
+Number of threads: 11
+Compression speedup: 7.14144
+Decompression speedup: 11.1415
+Total speedup: 8.41202
+
+******************** Parallel Version (OPENMP_ParallelHistogram)*********************
+Thread 0 takes 0.499974 to get symbol frequencies
+Thread 1 takes 0.500463 to get symbol frequencies
+Thread 2 takes 0.500473 to get symbol frequencies
+Thread 3 takes 0.500665 to get symbol frequencies
+Thread 4 takes 0.500471 to get symbol frequencies
+Thread 5 takes 0.500579 to get symbol frequencies
+Thread 6 takes 0.500438 to get symbol frequencies
+Thread 7 takes 0.50048 to get symbol frequencies
+Thread 8 takes 0.500574 to get symbol frequencies
+Thread 9 takes 0.500492 to get symbol frequencies
+Thread 10 takes 0.500443 to get symbol frequencies
+Thread 0 takes 11.7619s to encode chunk
+Thread 1 takes 11.7034s to encode chunk
+Thread 2 takes 11.6284s to encode chunk
+Thread 3 takes 11.616s to encode chunk
+Thread 4 takes 11.6904s to encode chunk
+Thread 5 takes 11.7042s to encode chunk
+Thread 6 takes 11.726s to encode chunk
+Thread 7 takes 11.732s to encode chunk
+Thread 8 takes 11.6645s to encode chunk
+Thread 9 takes 11.5475s to encode chunk
+Thread 10 takes 11.6657s to encode chunk
+Thread 0 takes 9.48958s to decode chunk
+Thread 1 takes 9.43965s to decode chunk
+Thread 2 takes 9.36271s to decode chunk
+Thread 3 takes 9.34726s to decode chunk
+Thread 4 takes 9.44867s to decode chunk
+Thread 5 takes 9.43632s to decode chunk
+Thread 6 takes 9.47598s to decode chunk
+Thread 7 takes 9.52593s to decode chunk
+Thread 8 takes 9.41193s to decode chunk
+Thread 9 takes 9.15981s to decode chunk
+Thread 10 takes 9.38138s to decode chunk
+Compression Ratio = 0.590752
+Compression Statistics:
+	Time to generate Histogram = 0.500791s, 3%
+	Time to generate Huffman Tree = 0.384102s, 3%
+	Time to write symbol list = 6.82846e-06s, 0%
+	Time to compress file = 11.762s, 93%
+	Compression Elapse time = 12.6469s
+
+Decompression Statistics:
+	Time to generate Huffman Tree = 5.71199e-05s, 0%
+	Time to decompress file = 9.52613s, 99%
+	Decompression Elapse time = 9.52619s
+
+************************* Summary *************************
+Number of threads: 11
+Compression speedup: 11.569
+Decompression speedup: 11.1543
+Total speedup: 11.3908
+

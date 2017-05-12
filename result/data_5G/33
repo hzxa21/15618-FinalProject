@@ -1,0 +1,219 @@
+******************** Sequential Version *******************
+Result Cache
+Compression Statistics:
+	Time to generate Histogram = 13.9999s, 9%
+	Time to generate Huffman Tree = 6.0659s, 4%
+	Time to write symbol list = 7.67037e-06s, 0%
+	Time to compress file = 126.247s, 86%
+	Compression Elapse time = 146.312s
+
+Decompression Statistics:
+	Time to generate Huffman Tree = 4.99673e-05s, 0%
+	Time to decompress file = 106.258s, 99%
+	Decompression Elapse time = 106.258s
+
+******************** Parallel Version (OPENMP_NAIVE)*********************
+Thread 0 takes 3.91501s to encode chunk
+Thread 1 takes 3.93426s to encode chunk
+Thread 2 takes 3.92802s to encode chunk
+Thread 3 takes 5.39008s to encode chunk
+Thread 4 takes 5.66285s to encode chunk
+Thread 5 takes 4.42377s to encode chunk
+Thread 6 takes 5.42559s to encode chunk
+Thread 7 takes 5.45246s to encode chunk
+Thread 8 takes 5.43685s to encode chunk
+Thread 9 takes 5.33549s to encode chunk
+Thread 10 takes 4.95499s to encode chunk
+Thread 11 takes 5.46147s to encode chunk
+Thread 12 takes 5.49648s to encode chunk
+Thread 13 takes 3.89119s to encode chunk
+Thread 14 takes 5.4384s to encode chunk
+Thread 15 takes 5.52968s to encode chunk
+Thread 16 takes 3.98817s to encode chunk
+Thread 17 takes 5.44377s to encode chunk
+Thread 18 takes 3.92209s to encode chunk
+Thread 19 takes 5.60563s to encode chunk
+Thread 20 takes 5.50219s to encode chunk
+Thread 21 takes 4.28063s to encode chunk
+Thread 22 takes 5.49038s to encode chunk
+Thread 23 takes 3.90874s to encode chunk
+Thread 24 takes 5.41485s to encode chunk
+Thread 25 takes 5.53199s to encode chunk
+Thread 26 takes 5.45341s to encode chunk
+Thread 27 takes 5.43907s to encode chunk
+Thread 28 takes 5.45769s to encode chunk
+Thread 29 takes 4.02985s to encode chunk
+Thread 30 takes 5.28558s to encode chunk
+Thread 31 takes 3.89566s to encode chunk
+Thread 32 takes 5.42947s to encode chunk
+Thread 0 takes 3.98966s to decode chunk
+Thread 1 takes 3.92975s to decode chunk
+Thread 2 takes 3.18071s to decode chunk
+Thread 3 takes 4.04875s to decode chunk
+Thread 4 takes 3.88819s to decode chunk
+Thread 5 takes 3.92622s to decode chunk
+Thread 6 takes 3.92017s to decode chunk
+Thread 7 takes 3.79974s to decode chunk
+Thread 8 takes 3.85999s to decode chunk
+Thread 9 takes 3.93367s to decode chunk
+Thread 10 takes 3.86586s to decode chunk
+Thread 11 takes 3.13257s to decode chunk
+Thread 12 takes 3.16747s to decode chunk
+Thread 13 takes 3.15395s to decode chunk
+Thread 14 takes 3.28157s to decode chunk
+Thread 15 takes 3.93316s to decode chunk
+Thread 16 takes 4.02935s to decode chunk
+Thread 17 takes 3.16046s to decode chunk
+Thread 18 takes 3.75428s to decode chunk
+Thread 19 takes 3.1613s to decode chunk
+Thread 20 takes 3.17663s to decode chunk
+Thread 21 takes 3.92175s to decode chunk
+Thread 22 takes 3.91503s to decode chunk
+Thread 23 takes 3.91472s to decode chunk
+Thread 24 takes 3.87578s to decode chunk
+Thread 25 takes 3.77439s to decode chunk
+Thread 26 takes 3.11866s to decode chunk
+Thread 27 takes 3.78646s to decode chunk
+Thread 28 takes 3.92696s to decode chunk
+Thread 29 takes 3.92751s to decode chunk
+Thread 30 takes 3.95339s to decode chunk
+Thread 31 takes 3.33439s to decode chunk
+Thread 32 takes 3.64089s to decode chunk
+Compression Ratio = 0.590752
+Compression Statistics:
+	Time to generate Histogram = 8.33402s, 58%
+	Time to generate Huffman Tree = 0.248381s, 1%
+	Time to write symbol list = 6.73905e-06s, 0%
+	Time to compress file = 5.6632s, 39%
+	Compression Elapse time = 14.2456s
+
+Decompression Statistics:
+	Time to generate Huffman Tree = 6.23967e-05s, 0%
+	Time to decompress file = 4.05656s, 99%
+	Decompression Elapse time = 4.05662s
+
+************************* Summary *************************
+Number of threads: 33
+Compression speedup: 10.2707
+Decompression speedup: 26.1937
+Total speedup: 13.8
+
+******************** Parallel Version (OPENMP_ParallelHistogram)*********************
+Thread 0 takes 0.301373 to get symbol frequencies
+Thread 1 takes 0.303494 to get symbol frequencies
+Thread 2 takes 0.30146 to get symbol frequencies
+Thread 3 takes 0.295869 to get symbol frequencies
+Thread 4 takes 0.302056 to get symbol frequencies
+Thread 5 takes 0.304496 to get symbol frequencies
+Thread 6 takes 0.303388 to get symbol frequencies
+Thread 7 takes 0.304496 to get symbol frequencies
+Thread 8 takes 0.298963 to get symbol frequencies
+Thread 9 takes 0.304605 to get symbol frequencies
+Thread 10 takes 0.30455 to get symbol frequencies
+Thread 11 takes 0.304506 to get symbol frequencies
+Thread 12 takes 0.301991 to get symbol frequencies
+Thread 13 takes 0.304463 to get symbol frequencies
+Thread 14 takes 0.304507 to get symbol frequencies
+Thread 15 takes 0.304558 to get symbol frequencies
+Thread 16 takes 0.304527 to get symbol frequencies
+Thread 17 takes 0.304483 to get symbol frequencies
+Thread 18 takes 0.298963 to get symbol frequencies
+Thread 19 takes 0.304482 to get symbol frequencies
+Thread 20 takes 0.304467 to get symbol frequencies
+Thread 21 takes 0.304511 to get symbol frequencies
+Thread 22 takes 0.301991 to get symbol frequencies
+Thread 23 takes 0.298926 to get symbol frequencies
+Thread 24 takes 0.301906 to get symbol frequencies
+Thread 25 takes 0.303901 to get symbol frequencies
+Thread 26 takes 0.304505 to get symbol frequencies
+Thread 27 takes 0.300991 to get symbol frequencies
+Thread 28 takes 0.299019 to get symbol frequencies
+Thread 29 takes 0.304514 to get symbol frequencies
+Thread 30 takes 0.304441 to get symbol frequencies
+Thread 31 takes 0.301465 to get symbol frequencies
+Thread 32 takes 0.301302 to get symbol frequencies
+Thread 0 takes 5.4518s to encode chunk
+Thread 1 takes 3.93818s to encode chunk
+Thread 2 takes 3.92506s to encode chunk
+Thread 3 takes 5.45712s to encode chunk
+Thread 4 takes 5.45248s to encode chunk
+Thread 5 takes 3.89042s to encode chunk
+Thread 6 takes 3.8963s to encode chunk
+Thread 7 takes 5.42849s to encode chunk
+Thread 8 takes 5.40576s to encode chunk
+Thread 9 takes 5.50947s to encode chunk
+Thread 10 takes 3.86599s to encode chunk
+Thread 11 takes 3.87418s to encode chunk
+Thread 12 takes 5.45527s to encode chunk
+Thread 13 takes 5.46389s to encode chunk
+Thread 14 takes 3.89822s to encode chunk
+Thread 15 takes 5.54599s to encode chunk
+Thread 16 takes 5.45667s to encode chunk
+Thread 17 takes 5.46443s to encode chunk
+Thread 18 takes 5.55375s to encode chunk
+Thread 19 takes 5.45014s to encode chunk
+Thread 20 takes 5.48954s to encode chunk
+Thread 21 takes 3.91454s to encode chunk
+Thread 22 takes 3.92882s to encode chunk
+Thread 23 takes 5.48276s to encode chunk
+Thread 24 takes 5.43518s to encode chunk
+Thread 25 takes 5.4658s to encode chunk
+Thread 26 takes 5.47395s to encode chunk
+Thread 27 takes 5.39727s to encode chunk
+Thread 28 takes 3.90284s to encode chunk
+Thread 29 takes 5.43871s to encode chunk
+Thread 30 takes 5.47344s to encode chunk
+Thread 31 takes 5.46447s to encode chunk
+Thread 32 takes 3.86487s to encode chunk
+Thread 0 takes 3.8983s to decode chunk
+Thread 1 takes 3.92618s to decode chunk
+Thread 2 takes 3.91338s to decode chunk
+Thread 3 takes 3.16808s to decode chunk
+Thread 4 takes 3.1536s to decode chunk
+Thread 5 takes 3.86589s to decode chunk
+Thread 6 takes 3.81115s to decode chunk
+Thread 7 takes 3.12868s to decode chunk
+Thread 8 takes 3.85646s to decode chunk
+Thread 9 takes 3.87773s to decode chunk
+Thread 10 takes 3.85527s to decode chunk
+Thread 11 takes 3.87939s to decode chunk
+Thread 12 takes 3.17604s to decode chunk
+Thread 13 takes 3.88999s to decode chunk
+Thread 14 takes 3.90027s to decode chunk
+Thread 15 takes 3.9209s to decode chunk
+Thread 16 takes 3.88249s to decode chunk
+Thread 17 takes 3.16661s to decode chunk
+Thread 18 takes 3.89697s to decode chunk
+Thread 19 takes 3.82256s to decode chunk
+Thread 20 takes 3.9126s to decode chunk
+Thread 21 takes 3.90747s to decode chunk
+Thread 22 takes 3.19764s to decode chunk
+Thread 23 takes 3.91487s to decode chunk
+Thread 24 takes 3.1625s to decode chunk
+Thread 25 takes 3.17259s to decode chunk
+Thread 26 takes 3.8716s to decode chunk
+Thread 27 takes 2.88971s to decode chunk
+Thread 28 takes 3.8904s to decode chunk
+Thread 29 takes 3.14839s to decode chunk
+Thread 30 takes 3.17818s to decode chunk
+Thread 31 takes 3.89961s to decode chunk
+Thread 32 takes 3.88001s to decode chunk
+Compression Ratio = 0.590752
+Compression Statistics:
+	Time to generate Histogram = 0.306995s, 5%
+	Time to generate Huffman Tree = 0.253117s, 4%
+	Time to write symbol list = 6.96257e-06s, 0%
+	Time to compress file = 5.55591s, 90%
+	Compression Elapse time = 6.11603s
+
+Decompression Statistics:
+	Time to generate Huffman Tree = 6.43879e-05s, 0%
+	Time to decompress file = 3.92659s, 99%
+	Decompression Elapse time = 3.92666s
+
+************************* Summary *************************
+Number of threads: 33
+Compression speedup: 23.9228
+Decompression speedup: 27.0607
+Total speedup: 25.1497
+

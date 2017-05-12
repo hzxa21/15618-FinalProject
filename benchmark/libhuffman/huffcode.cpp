@@ -249,8 +249,8 @@ int main(int argc, char **argv) {
   }
 
 
-  double seq_c_time[5];
-  double seq_d_time[3];
+  double seq_c_time[5] = {0, 74.9316,74.9316+29.4099, 74.9316+29.4099+0.00001653, 74.9316+29.4099+0.00001653+365.257};
+  double seq_d_time[3] = {0, 0.00016702, 0.00016702+263.202};
   
   /************ Start Benchmarking **************/
   // Run Sequential Version
@@ -272,9 +272,11 @@ int main(int argc, char **argv) {
   }
   fclose(f_ptr);
 
-  print_stats(c_time, d_time, table);
+
   memcpy(seq_c_time, c_time, sizeof(double)*5);
   memcpy(seq_d_time, d_time, sizeof(double)*3);
+
+  print_stats(seq_c_time, seq_d_time, table);
 
   // Run Parallel Version Next
   cout << "******************** Parallel Version (OPENMP_NAIVE)*********************" << endl;

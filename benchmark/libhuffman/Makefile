@@ -11,7 +11,7 @@ COMMONDIR=common
 
 
 TASKSYS_CXX=$(COMMONDIR)/tasksys.cpp
-TASKSYS_LIB=-lpthread
+TASKSYS_LIB=-lpthread 
 TASKSYS_OBJ=$(addprefix $(OBJDIR)/, $(subst $(COMMONDIR)/,, $(TASKSYS_CXX:.cpp=.o)))
 
 OBJS=$(OBJDIR)/huffcode.o $(OBJDIR)/util.o $(OBJDIR)/test_ispc.o \

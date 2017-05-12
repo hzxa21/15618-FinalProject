@@ -1,0 +1,13 @@
+Compression Statistics:
+	Time to generate Histogram = 74.9316s, 15%
+	Time to generate Huffman Tree = 29.4099s, 6%
+	Time to write symbol list = 1.653e-05s, 0%
+	Time to compress file = 365.257s, 77%
+	Compression Elapse time = 469.599s
+
+Decompression Statistics:
+	Time to generate Huffman Tree = 0.00016702s, 0%
+	Time to decompress file = 263.202s, 99%
+	Decompression Elapse time = 263.202s
+
+******************** Parallel Version (OPENMP_NAIVE)*********************
