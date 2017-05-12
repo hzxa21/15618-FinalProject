@@ -40,8 +40,8 @@ During the development, we also tried to use ISPC to utilize SIMD unit. But ther
 ## Results
 We conduct evaluation on parallel huffman coding compression and decompression on three platforms: GHC Machine, Xeon Phi Co-processor, many-cores NUMA CPU.
 ### GHC Machine (Xeon E5-1660 v4 @ 3.20GHz, 8 Cores, 16 Threads)
-![](https://raw.githubusercontent.com/hzxa21/15618-FinalProject/blob/master/result/GhcCompression.png)
-![](https://raw.githubusercontent.com/hzxa21/15618-FinalProject/blob/master/result/GhcDecompression.png)
+![](https://raw.githubusercontent.com/hzxa21/15618-FinalProject/master/result/GhcCompression.png)
+![](https://raw.githubusercontent.com/hzxa21/15618-FinalProject/master/result/GhcDecompression.png)
 **Figure 5. Speedup on parallel huffman compression and decompression versus the optimized sequential implementation (Xeon E5-1660)**
 
 We first runs Huffman compression and decompression using 500MB Wiki dataset on the GHC machines, which has 8 cores and 16 hardware threads. The result shows a linear speedup until 8 threads are used while there is little speedup from using 8 threads to 16 threads. This makes sense because there are only 8 physical cores in the machine and hyperthreading helps little when huffman compression and decompression are CPU bound.
@@ -54,8 +54,8 @@ We first runs Huffman compression and decompression using 500MB Wiki dataset on 
 We then runs Huffman compression and decompression using 5.5GB Wiki dataset on Xeon Phi, which has 68 cores and 256 threads. The results are similar and our approaches can achieve linear speedup until we fully utilize all the physical cores and benefit little from hyperthreading.
 
 ### NUMA CPU (Xeon E5-2699 v4 @2.20GHz, 88 Cores, 4 Sockets, 88 Threads)
-![](https://raw.githubusercontent.com/hzxa21/15618-FinalProject/blob/master/result/GhcCompression.png)
-![](https://raw.githubusercontent.com/hzxa21/15618-FinalProject/blob/master/result/GhcDecompression.png)
+![](https://raw.githubusercontent.com/hzxa21/15618-FinalProject/master/result/NUMACompression.png)
+![](https://raw.githubusercontent.com/hzxa21/15618-FinalProject/master/result/NUMADecompression.png)
 **Figure 7. Speedup on parallel huffman compression and decompression versus the optimized sequential implementation (Xeon E5-2699)**
 
 We also try to run our algorithm on a NUMA CPU, which has 88 cores and 4 sockets with each of the 22 cores placing in the same socket. We configure the CPU affinity policy of OpenMP such that threads are bound to cores according their thread ids. Here we are using the absolute value of the speedup instead of the log speedup because we want to see the behavior of placing threads across sockets. The result shows that when the threads are running in the same socket, the speedup trend is not affected. But when the threads are running across different sockets, we see almost no speedup (22 to 33 threads) or even slow down (77 to 88 threads). This is caused by interconnect traffics across sockets because we use the first thread to load the file into memory and this memory are allocated on the first socket only with the default first touch policy. We then further parallelize the file loading step to try to make memory allocated across sockets to reduce the interconnect traffics but we see little improvement. We think that in order to tackle with this problem, we may need to use NUMA-aware memory allocation system calls or enforce other NUM-aware memory allocation policies but since they are platform specific and the NUMA libraries are absent in the intel cluster, we find it hard to do further improvement on this issue.
