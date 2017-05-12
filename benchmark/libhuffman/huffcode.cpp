@@ -36,7 +36,7 @@ extern char *optarg;
 #include <unistd.h>
 #endif
 
-int num_of_threads = 4;
+int num_of_threads = 2;
 
 static void version(FILE *out) {
   fputs(
