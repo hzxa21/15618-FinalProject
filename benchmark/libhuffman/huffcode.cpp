@@ -76,11 +76,11 @@ static void run_huffman(
   {
     int tid = omp_get_thread_num();
     FILE* in_file = fopen(infile_name.c_str(), "rb");
-    int chunk_size = UPDIV(file_size, num_of_threads);
-    int start_offset = tid * chunk_size;
+    size_t chunk_size = UPDIV(file_size, num_of_threads);
+    size_t start_offset = tid * chunk_size;
+    size_t end_offset = min(start_offset + chunk_size, file_size);
     fseek(in_file, start_offset, SEEK_SET);
-    fread(in_data + start_offset, 1,
-          min(chunk_size, (int)(file_size - start_offset)), in_file);
+    fread(in_data + start_offset, 1,end_offset - start_offset, in_file);
     fclose(in_file);
   }
   // Buffer that stores input file bytes
