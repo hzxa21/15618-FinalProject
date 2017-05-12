@@ -37,7 +37,6 @@ using std::min;
 #define printf(...)
 #endif
 
-int num_chunks = 4;
 size_t* compressed_chunk_start_offset;
 
 static void
@@ -45,18 +44,18 @@ get_symbol_frequencies_parallel(SymbolFrequencies *pSF, data_buf& buf) {
   int c;
   uint64_t total_count = 0;
 
-  uint64_t buf_chunk_size = UPDIV(buf.size, num_chunks);
-  int histo_chunk_size = UPDIV(MAX_SYMBOLS, num_chunks);
-  uint64_t* histo_per_thread = new uint64_t[num_chunks*MAX_SYMBOLS];
-  memset(histo_per_thread, 0L, num_chunks*MAX_SYMBOLS*sizeof(uint64_t));
+  uint64_t buf_chunk_size = UPDIV(buf.size, num_of_threads);
+  int histo_chunk_size = UPDIV(MAX_SYMBOLS, num_of_threads);
+  uint64_t* histo_per_thread = new uint64_t[num_of_threads*MAX_SYMBOLS];
+  memset(histo_per_thread, 0L, num_of_threads*MAX_SYMBOLS*sizeof(uint64_t));
 
   /* Set all frequencies to 0. */
   init_frequencies(pSF);
-
-  auto start_time = CycleTimer::currentSeconds();
-
-#pragma omp parallel
+  
+  double* time = new double[num_of_threads];
+  #pragma omp parallel
   {
+    double t0 = CycleTimer::currentSeconds();
     int tid = omp_get_thread_num();
 
     // Which chunk of the buffer to read
@@ -71,14 +70,14 @@ get_symbol_frequencies_parallel(SymbolFrequencies *pSF, data_buf& buf) {
       histo_per_thread[histo_id+(buf.data[i])]++;
     }
 
-#pragma omp barrier
+    #pragma omp barrier
     // Which chunk of the histogram to update
     start_offset = histo_chunk_size*tid;
     end_offset = std::min(start_offset+histo_chunk_size, (uint64_t)MAX_SYMBOLS);
 
     for (uint64_t i=start_offset; i<end_offset; i++) {
       uint64_t freq = 0;
-      for (int j=0; j<num_chunks; j++) {
+      for (int j=0; j<num_of_threads; j++) {
         freq+=histo_per_thread[MAX_SYMBOLS*j+i];
       }
       if (freq) {
@@ -86,10 +85,13 @@ get_symbol_frequencies_parallel(SymbolFrequencies *pSF, data_buf& buf) {
         (*pSF)[i]->count = freq;
       }
     }
+    time[tid] = CycleTimer::currentSeconds() - t0;
   }
-
+  
+  for (int i = 0; i < num_of_threads; i++)
+    cout << "Thread " << i << " takes " << time[i] << " to get symbol frequencies" << endl;
+  delete[] time;
   delete[] histo_per_thread;
-
 }
 
 static void
@@ -160,7 +162,7 @@ void write_code_table_memory(data_buf& out_data_buf,
 size_t get_out_size(data_buf& in_buf, SymbolEncoder *se) {
   size_t res = 0;
   size_t cnt = 0;
-  size_t* bytes_in_chunks = new size_t[num_chunks];
+  size_t* bytes_in_chunks = new size_t[num_of_threads];
   #pragma omp parallel
   {
     int tid = omp_get_thread_num();
@@ -178,11 +180,11 @@ size_t get_out_size(data_buf& in_buf, SymbolEncoder *se) {
 
   size_t sum = 0;
   compressed_chunk_start_offset[0] = 0;
-  for (int i = 0; i<num_chunks-1; i++) {
+  for (int i = 0; i<num_of_threads-1; i++) {
     sum+=bytes_in_chunks[i];
     compressed_chunk_start_offset[i+1] = sum;
   }
-  res = num_chunks*sizeof(size_t) + sum + bytes_in_chunks[num_chunks-1];
+  res = num_of_threads*sizeof(size_t) + sum + bytes_in_chunks[num_of_threads-1];
 
   delete[] bytes_in_chunks;
   // Calculate the size of symbol metadata
@@ -204,16 +206,19 @@ size_t get_out_size(data_buf& in_buf, SymbolEncoder *se) {
 
 
 static int do_encode(data_buf& in_buf, data_buf& out_buf, SymbolEncoder *se) {
-  size_t chunk_size = (in_buf.size+num_chunks-1)/num_chunks;
-#pragma omp parallel
+  size_t chunk_size = (in_buf.size+num_of_threads-1)/num_of_threads;
+  double* time = new double[num_of_threads];
+  #pragma omp parallel
   {
+    double t0 = CycleTimer::currentSeconds();
+    
     unsigned char curbyte = 0;
     unsigned char curbit = 0;
     int tid = omp_get_thread_num();
 
     size_t start_offset = compressed_chunk_start_offset[tid];
     ((size_t*)(out_buf.data+out_buf.curr_offset))[tid] = start_offset;
-    start_offset+=num_chunks*sizeof(size_t);
+    start_offset+=num_of_threads*sizeof(size_t);
 
     size_t i_offset = chunk_size*tid;
     size_t e_offset = std::min(i_offset+chunk_size, in_buf.size);
@@ -248,7 +253,14 @@ static int do_encode(data_buf& in_buf, data_buf& out_buf, SymbolEncoder *se) {
      */
     if (curbit > 0)
       (out_buf.data+out_buf.curr_offset)[start_offset] = curbyte;
+    
+    time[tid] = CycleTimer::currentSeconds() - t0;
   }
+  
+  // Print per thread time stats
+  for (int i = 0; i < num_of_threads; i++)
+    cout << "Thread " << i << " takes " << time[i] << "s to encode chunk" << endl;
+  delete[] time;
 
   return 0;
 }
@@ -261,7 +273,6 @@ huffman_node * read_code_table_memory(data_buf& buf, uint64_t& num_bytes) {
   // Read number of bytes in the original file
   buf.read_data(&num_bytes, sizeof(num_bytes));
   printf("[DEBUG] Offset after reading data_size = %ld\n", buf.curr_offset);
-
 
   // Read the symbols and build huffman tree
   huffman_node *root = new_nonleaf_node(0, NULL, NULL);
@@ -310,9 +321,8 @@ huffman_node * read_code_table_memory(data_buf& buf, uint64_t& num_bytes) {
 }
 
 int huffman_encode_parallel(
-    data_buf& in_data_buf, data_buf& out_data_buf, parallel_type type, int num_of_threads) {
+    data_buf& in_data_buf, data_buf& out_data_buf, parallel_type type) {
   omp_set_num_threads(num_of_threads);
-  num_chunks = num_of_threads;
   compressed_chunk_start_offset = new size_t[num_of_threads];
   printf("[DEBUG] Start Compression\n");
   c_time[0] = CycleTimer::currentSeconds();
@@ -363,9 +373,9 @@ int huffman_encode_parallel(
 
 int
 huffman_decode_parallel(
-    data_buf& in_data_buf, data_buf& out_data_buf, parallel_type type, int num_of_threads) {
+    data_buf& in_data_buf, data_buf& out_data_buf, parallel_type type) {
   omp_set_num_threads(num_of_threads);
-  num_chunks = num_of_threads;
+  num_of_threads = num_of_threads;
   compressed_chunk_start_offset = new size_t[num_of_threads];
   printf("[DEBUG] Start Decompression\n");
 
@@ -387,10 +397,14 @@ huffman_decode_parallel(
 
   printf("[DEBUG] Decompres File\n");
   // Decode the file using Huffman Tree
-  in_data_buf.read_data(compressed_chunk_start_offset, num_chunks*sizeof(size_t));
-  size_t o_chunk_size = (data_count+num_chunks-1)/num_chunks;
+  in_data_buf.read_data(compressed_chunk_start_offset, num_of_threads*sizeof(size_t));
+  size_t o_chunk_size = (data_count+num_of_threads-1)/num_of_threads;
+  
+  double* time = new double[num_of_threads];
   #pragma omp parallel
   {
+    double t0 = CycleTimer::currentSeconds();
+    
     huffman_node *p = root;
     int tid = omp_get_thread_num();
     size_t i_offset = compressed_chunk_start_offset[tid] + in_data_buf.curr_offset;
@@ -411,7 +425,14 @@ huffman_decode_parallel(
         }
       }
     }
+    
+    time[tid] = CycleTimer::currentSeconds() - t0;
   }
+  
+  for (int i = 0; i < num_of_threads; i++) {
+    cout << "Thread " << i << " takes " << time[i] << "s to decode chunk" << endl;
+  }
+  delete[] time;
   
   d_time[2] = CycleTimer::currentSeconds();
   printf("[DEBUG] Finish Decompression\n");

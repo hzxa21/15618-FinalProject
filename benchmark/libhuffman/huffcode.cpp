@@ -39,7 +39,6 @@ extern char *optarg;
 
 int num_of_threads = 4;
 
-
 static void version(FILE *out) {
   fputs(
       "huffcode 0.3\n"
@@ -55,8 +54,9 @@ static void usage(FILE *out) {
       "Usage: huffcode -i <input file>\n"
       "-i - input file. Will compress and decompress it\n"
       "-h - print usage information\n"
+      "-t - specify number of threads to use. Default is 4"
       "-c - check correctness (will output file to disk)\n"
-          "-p - PrintTable\n"
+      "-p - PrintTable\n"
       "-r - read seq_time cache\n",
       out);
 }
@@ -65,8 +65,7 @@ static void run_huffman(
     string& infile_name,
     bool is_seq,
     bool check_correctness,
-    parallel_type type = OPENMP_NAIVE,
-    int num_of_threads = 4) {
+    parallel_type type=OPENMP_NAIVE) {
   // Read input file into memory
   struct stat sbuf;
   stat(infile_name.c_str(), &sbuf);
@@ -95,7 +94,7 @@ static void run_huffman(
     huffman_encode_seq(in_buf, tmp_buf);
   } else {
     tmpfile_name = "compressed_parallel";
-    huffman_encode_parallel(in_buf, tmp_buf, type, num_of_threads);
+    huffman_encode_parallel(in_buf, tmp_buf, type);
   }
 
   if (check_correctness) {
@@ -118,7 +117,7 @@ static void run_huffman(
     huffman_decode_seq(tmp_buf, out_buf);
   } else {
     outfile_name = "decompressed_parallel";
-    huffman_decode_parallel(tmp_buf, out_buf, type, num_of_threads);
+    huffman_decode_parallel(tmp_buf, out_buf, type);
   }
 
   cout << "Compression Ratio = " << tmp_buf.size * 1.0 / file_size << endl;
@@ -207,7 +206,7 @@ int main(int argc, char **argv) {
   int opt;
   string infile_name;
   bool check_correctness = false;
-  bool read_cachce = false;
+  bool read_cache = false;
   bool table = false;
   while ((opt = getopt(argc, argv, "i:t:bhvmncrp")) != -1) {
     switch (opt) {
@@ -227,7 +226,7 @@ int main(int argc, char **argv) {
         check_correctness = true;
         break;
       case 'r':
-        read_cachce = true;
+        read_cache = true;
         break;
       case 'p':
         table = true;
@@ -245,15 +244,15 @@ int main(int argc, char **argv) {
   }
 
 
-  double pre_c_time[5];
-  double pre_d_time[3];
+  double seq_c_time[5];
+  double seq_d_time[3];
   
   /************ Start Benchmarking **************/
   // Run Sequential Version
   cout << "******************** Sequential Version *******************" << endl;
   FILE* f_ptr;
   string cache_file_name = "cache_seq_time";
-  if (access( cache_file_name.c_str(), F_OK ) == -1 || !read_cachce) {
+  if (access( cache_file_name.c_str(), F_OK ) == -1 || !read_cache) {
     run_huffman(infile_name, true, check_correctness);
     cout << "Write Cache" << endl;
     f_ptr = fopen(cache_file_name.c_str(), "wb");
@@ -269,27 +268,22 @@ int main(int argc, char **argv) {
   fclose(f_ptr);
 
   print_stats(c_time, d_time, table);
-
-
-  memcpy(pre_c_time, c_time, sizeof(double)*5);
-  memcpy(pre_d_time, d_time, sizeof(double)*3);
+  memcpy(seq_c_time, c_time, sizeof(double)*5);
+  memcpy(seq_d_time, d_time, sizeof(double)*3);
 
   // Run Parallel Version Next
   cout << "******************** Parallel Version (OPENMP_NAIVE)*********************" << endl;
-  run_huffman(infile_name, false, check_correctness, OPENMP_NAIVE, num_of_threads);
+  run_huffman(infile_name, false, check_correctness, OPENMP_NAIVE);
   print_stats(c_time, d_time, table);
 
-  print_summary(c_time, d_time, pre_c_time, pre_d_time);
-
-  memcpy(pre_c_time, c_time, sizeof(double)*5);
-  memcpy(pre_d_time, d_time, sizeof(double)*3);
+  print_summary(c_time, d_time, seq_c_time, seq_d_time);
 
   // Run Parallel Version Next
   cout << "******************** Parallel Version (OPENMP_ParallelHistogram)*********************" << endl;
-  run_huffman(infile_name, false, check_correctness, OPENMP_ParallelHistogram, num_of_threads);
+  run_huffman(infile_name, false, check_correctness, OPENMP_ParallelHistogram);
   print_stats(c_time, d_time, table);
 
-  print_summary(c_time, d_time, pre_c_time, pre_d_time);
+  print_summary(c_time, d_time, seq_c_time, seq_d_time);
 
   return 0;
 }

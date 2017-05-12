@@ -79,10 +79,12 @@ int huffman_encode_seq(data_buf& in_buf, data_buf& out_buf);
 int huffman_decode_seq(data_buf& in_buf, data_buf& out_buf);
 
 // Parallel Version
-int huffman_encode_parallel(data_buf& in_buf, data_buf& out_buf, parallel_type type, int);
-int huffman_decode_parallel(data_buf& in_buf, data_buf& out_buf, parallel_type type, int);
+int huffman_encode_parallel(data_buf& in_buf, data_buf& out_buf, parallel_type type);
+int huffman_decode_parallel(data_buf& in_buf, data_buf& out_buf, parallel_type type);
 
 // Time statistics
 extern double c_time[5];
 extern double d_time[3];
+
+extern int num_of_threads;
 
