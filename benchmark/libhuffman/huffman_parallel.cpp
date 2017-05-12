@@ -84,6 +84,8 @@ get_symbol_frequencies_parallel(SymbolFrequencies *pSF, data_buf& buf) {
         (*pSF)[i] = new_leaf_node(i);
         (*pSF)[i]->count = freq;
       }
+      else
+        (*pSF)[i] = nullptr;
     }
     time[tid] = CycleTimer::currentSeconds() - t0;
   }
