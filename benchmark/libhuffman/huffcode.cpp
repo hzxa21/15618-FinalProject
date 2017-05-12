@@ -15,10 +15,6 @@
 #include <iostream>
 #include "huffman.h"
 #include "util.h"
-//#include <thrust/scan.h>
-//#include <thrust/execution_policy.h>
-//int data[6] = {1, 0, 2, 2, 1, 3};
-//thrust::exclusive_scan(thrust::host, data, data + 6, data); // in-place scan
 #include "test_ispc.h"
 
 
@@ -288,11 +284,41 @@ int main(int argc, char **argv) {
   return 0;
 }
 
-// Test ispc
+//// Test ispc
+//
+//struct s {
+//  unsigned long a;
+//  char* b;
+//};
+//
 //int main(int argc, char **argv) {
-//  size_t data[10] = {1,2,3,4,5,6,7,8,9,10};
-//  size_t output[10];
-//  prefix_sum(data, 10, output);
-//  for (int i=0;i<10;i++)
-//    cout << output[i] << endl;
+//  size_t data[18] = {1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18};
+//  size_t divide[18];
+//  size_t mod[18];
+//  s ss;
+//  ss.a = 1;
+//  ss.b = new char[3];
+//  ss.b[0] = 0;
+//  ss.b[1] = 1;
+//  ss.b[2] = 2;
+//
+////  prefix_sum(data, 18, output);
+////  for (int i=0;i<18;i++)
+////    cout << output[i] << endl;
+//
+//  divide_mod_8(data, 18, divide, mod);
+//
+//  size_t mark[18];
+//  memset(mark, 0, sizeof(mark));
+//  mark_one(divide, 18, mark);
+//
+//  size_t *offset = divide;
+//
+//  prefix_sum(mark,18,offset);
+//  write_end_offset(offset, 18, offset);
+//  for (int i=0;i<18;i++)
+//    cout << i << "," << offset[i]<< endl;
+//
+//
+////  test_struct((int64_t *)&ss);
 //}
