@@ -218,7 +218,6 @@ int main(int argc, char **argv) {
         break;
       case 't':
         num_of_threads = atoi(optarg);
-        omp_set_num_threads(num_of_threads);
         break;
       case 'h':
         usage(stdout);
@@ -240,6 +239,8 @@ int main(int argc, char **argv) {
         return 1;
     }
   }
+
+  omp_set_num_threads(num_of_threads);
 
   // Input file name cannot be empty
   if (infile_name.empty()) {
