@@ -1,6 +1,8 @@
 #pragma once
 #include "huffman.h"
 
+#define UPDIV(a,b) (((a)+(b)-1)/((b)))
+
 int get_percentage(double total, double partial);
 
 unsigned long

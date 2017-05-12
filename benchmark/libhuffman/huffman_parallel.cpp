@@ -30,8 +30,6 @@ using std::cout;
 using std::endl;
 using std::min;
 
-#define UPDIV(a,b) (((a)+(b)-1)/((b)))
-
 //#define DEBUG
 #ifndef DEBUG
 #define printf(...)
@@ -90,8 +88,8 @@ get_symbol_frequencies_parallel(SymbolFrequencies *pSF, data_buf& buf) {
     time[tid] = CycleTimer::currentSeconds() - t0;
   }
   
-  for (int i = 0; i < num_of_threads; i++)
-    cout << "Thread " << i << " takes " << time[i] << " to get symbol frequencies" << endl;
+//  for (int i = 0; i < num_of_threads; i++)
+//    cout << "Thread " << i << " takes " << time[i] << " to get symbol frequencies" << endl;
   delete[] time;
   delete[] histo_per_thread;
 }
@@ -260,8 +258,8 @@ static int do_encode(data_buf& in_buf, data_buf& out_buf, SymbolEncoder *se) {
   }
   
   // Print per thread time stats
-  for (int i = 0; i < num_of_threads; i++)
-    cout << "Thread " << i << " takes " << time[i] << "s to encode chunk" << endl;
+//  for (int i = 0; i < num_of_threads; i++)
+//    cout << "Thread " << i << " takes " << time[i] << "s to encode chunk" << endl;
   delete[] time;
 
   return 0;
@@ -324,7 +322,6 @@ huffman_node * read_code_table_memory(data_buf& buf, uint64_t& num_bytes) {
 
 int huffman_encode_parallel(
     data_buf& in_data_buf, data_buf& out_data_buf, parallel_type type) {
-  omp_set_num_threads(num_of_threads);
   compressed_chunk_start_offset = new size_t[num_of_threads];
   printf("[DEBUG] Start Compression\n");
   c_time[0] = CycleTimer::currentSeconds();
@@ -431,9 +428,8 @@ huffman_decode_parallel(
     time[tid] = CycleTimer::currentSeconds() - t0;
   }
   
-  for (int i = 0; i < num_of_threads; i++) {
-    cout << "Thread " << i << " takes " << time[i] << "s to decode chunk" << endl;
-  }
+//  for (int i = 0; i < num_of_threads; i++)
+//    cout << "Thread " << i << " takes " << time[i] << "s to decode chunk" << endl;
   delete[] time;
   
   d_time[2] = CycleTimer::currentSeconds();

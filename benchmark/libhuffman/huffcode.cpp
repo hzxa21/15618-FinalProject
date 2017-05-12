@@ -13,6 +13,8 @@
 #include <stdexcept>
 #include <exception>
 #include <iostream>
+#include <algorithm>
+#include <omp.h>
 #include "huffman.h"
 #include "util.h"
 #include "test_ispc.h"
@@ -22,6 +24,7 @@ using std::runtime_error;
 using std::string;
 using std::cout;
 using std::endl;
+using std::min;
 using namespace ispc;
 
 #ifdef WIN32
@@ -62,20 +65,24 @@ static void run_huffman(
     bool is_seq,
     bool check_correctness,
     parallel_type type=OPENMP_NAIVE) {
-  // Read input file into memory
+  // Allocate input buffer
   struct stat sbuf;
   stat(infile_name.c_str(), &sbuf);
   size_t file_size = sbuf.st_size;
-  FILE* in_file = fopen(infile_name.c_str(), "rb");
-  if (in_file == NULL) {
-    throw runtime_error("Input file does not exist.");
-  }
   unsigned char* in_data = new unsigned char[file_size];
-  size_t read_cnt = fread(in_data, 1, file_size, in_file);
-  if (read_cnt != file_size) {
-    throw runtime_error("Cannot read entire input file");
+  
+  // Read input file into buffer
+  #pragma omp parallel 
+  {
+    int tid = omp_get_thread_num();
+    FILE* in_file = fopen(infile_name.c_str(), "rb");
+    int chunk_size = UPDIV(file_size, num_of_threads);
+    int start_offset = tid * chunk_size;
+    fseek(in_file, start_offset, SEEK_SET);
+    fread(in_data + start_offset, 1,
+          min(chunk_size, (int)(file_size - start_offset)), in_file);
+    fclose(in_file);
   }
-  fclose(in_file);
   // Buffer that stores input file bytes
   data_buf in_buf(in_data, file_size);
   // Buffer that store compressed bytes
@@ -211,6 +218,7 @@ int main(int argc, char **argv) {
         break;
       case 't':
         num_of_threads = atoi(optarg);
+        omp_set_num_threads(num_of_threads);
         break;
       case 'h':
         usage(stdout);
