@@ -22,10 +22,9 @@ Since the beginning of the project, here are some of the progress we made.
 - Finished the sequential version of the algorithm. We found an sequential implementation of LZSS online [1] and did some modifications to it. Specifically, we add timer to identify the bottleneck, fixed some existing bugs, and make it more object oriented. In the sequential version, there are three main steps. First step is to read bytes from file and put them in a lookahead buffer. Secondly, compare bytes in lookahead buffer with bytes in the sliding window and find the longest match. Thirdly, write the encoded offset + length to the output file and shift the sliding window to include matched characters. In theory, the first step and third step are mainly doing sequential file I/O, most of the time will be spent on the second step, which is doing string match. However, we found that most of the time is spent in the first step. It turns out that it’s a problem in the implementation where the program only read one byte from file at a time. 
 
 ## Deliverables on the Competition
+- Percentage of time spent on each stage of the compression and decompression algorightms.
 - Speed-up graph on parallel Huffman and LZSS compression vs. the sequential implementation with different number of cores using different datasets.
 - Speed-up graph on parallel Huffman and LZSS decompression vs. the sequential implementation with different number of cores using different datasets.
-- Space and speed overhead graph of the compression algorithm when the input data is relative small.
-- Comparison of different parameter settings for the compression algorithm (i.e. number of bits used for the compression unit in Huffman compression).
 
 ## Issues & Concerns
 #### Huffman Compression
