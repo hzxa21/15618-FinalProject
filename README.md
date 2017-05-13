@@ -61,7 +61,7 @@ During the development, we also tried to use ISPC to utilize SIMD unit. But ther
 We conduct evaluation on parallel huffman coding compression and decompression on three platforms: GHC Machine, Xeon Phi Co-processor, many-cores NUMA CPU.
 ### GHC Machine (Xeon E5-1660 v4 @ 3.20GHz, 8 Cores, 16 Threads)
 <p align="center">
-  <img src="https://raw.githubusercontent.com/hzxa21/15618-FinalProject/master/result/GhcCompression.png)" width="600">
+  <img src="https://raw.githubusercontent.com/hzxa21/15618-FinalProject/master/result/GhcCompression.png" width="600">
 </p>
 <p align="center">
   <img src="https://raw.githubusercontent.com/hzxa21/15618-FinalProject/master/result/GhcDecompression.png" width="600">
@@ -74,7 +74,7 @@ We first runs Huffman compression and decompression using 500MB Wiki dataset on 
 
 ### Xeon Phi (KNL) Co-processor (68 Cores, 256 Threads)
 <p align="center">
-  <img src="https://raw.githubusercontent.com/hzxa21/15618-FinalProject/master/result/PhiCompression.png)" width="600">
+  <img src="https://raw.githubusercontent.com/hzxa21/15618-FinalProject/master/result/PhiCompression.png" width="600">
 </p>
 <p align="center">
   <img src="https://raw.githubusercontent.com/hzxa21/15618-FinalProject/master/result/PhiDecompression.png" width="600">
@@ -87,7 +87,7 @@ We then runs Huffman compression and decompression using 5.5GB Wiki dataset on X
 
 ### NUMA CPU (Xeon E5-2699 v4 @2.20GHz, 88 Cores, 4 Sockets, 88 Threads)
 <p align="center">
-  <img src="https://raw.githubusercontent.com/hzxa21/15618-FinalProject/master/result/NUMACompression.png)" width="600">
+  <img src="https://raw.githubusercontent.com/hzxa21/15618-FinalProject/master/result/NUMACompression.png" width="600">
 </p>
 <p align="center">
   <img src="https://raw.githubusercontent.com/hzxa21/15618-FinalProject/master/result/NUMADecompression.png" width="600">
