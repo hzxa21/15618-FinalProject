@@ -15,28 +15,40 @@ Huffman Coding Compression has four main steps:
 Initially, we use libhuffman as our starter sequential codes. libhuffman is a single-threaded pure C library and command line interface for Huffman Coding, released under a BSD license. We found it from [github and sourceforge](http://huffman.sourceforge.net/). We modified it to be using C++11 and change many inefficient components in it to make it as optimized as possible. We also read the entire files into memory before the compression and decompression starts to avoid being bottlenecked by disk bandwidth. Then, we use it as the baseline for our evaluation. After we running the sequential Huffman Coding on a 5.5 GB Wiki Dataset, we get the following graph.
 
 <p align="center">
-  <img src="https://raw.githubusercontent.com/hzxa21/15618-FinalProject/master/result/Bottleneck.png" width="400">
+  <img src="https://raw.githubusercontent.com/hzxa21/15618-FinalProject/master/result/Bottleneck.png" width="600">
 </p>
-<center>Figure 1. Compression Time Component</center>
+<p align="center">
+  Figure 1. Compression Time Component
+</p>
 
 
 
 ### Parallelize Compression
 As we can see from the graph, 77.8% of the time is spent on encoding the input files. Thus, parallelizing encoding step becomes our first step. We are mainly using OpenMP to utilize the multi-core CPU and in the meantime to provide a clean interface without dealing with C++ Thread Library. Also, to avoid communication between threads, we divide the input file to equal size chunks and each thread will be working on their own chunk. When writing to the compressed file, we will precompute the size of compressed chunk each thread will produce. Then, use prefix sum to get the output offset so that each thread will know where they should write to. Those offset information will also be written to the front of compressed file as the metadata. The final compressed file will look like the following
 
-![](https://raw.githubusercontent.com/hzxa21/15618-FinalProject/master/result/FileFormat.PNG)
-
-**Figure 2. Compressed File Format**
+<p align="center">
+  <img src="https://raw.githubusercontent.com/hzxa21/15618-FinalProject/master/result/FileFormat.PNG" width="300">
+</p>
+<p align="center">
+  Figure 2. Compressed File Format
+</p>
 
 We conduct the analysis on the total compression time to identify the bottleneck as our development goes on. Figure 3 shows the percentage of time spent on each step of the compression when we only parallelize the second pass of the data to do real compression. Compression data (yellow region) takes almost 80% of the time in the sequential version. However, when we parallelize it and increase the number of threads, the compression data time drops dramatically and now histogram generation (blue region) becomes the bottleneck. It matches with the Amdahl's Law. Note that in our approach, the building tree step (orange region) requires us to pre-compute the compressed output size and we also parallelize the pre-computation in our first implementation so that we can see the building tree time also drops when the number of threads increases.
-![](https://raw.githubusercontent.com/hzxa21/15618-FinalProject/master/result/PercentageOfTimeNaive.png)
-
-**Figure 3. Percentage of Time Spent On Steps of Compression (Parallel Encoding Only)**
+<p align="center">
+  <img src="https://raw.githubusercontent.com/hzxa21/15618-FinalProject/master/result/PercentageOfTimeNaive.png" width="600">
+</p>
+<p align="center">
+  Figure 3. Percentage of Time Spent On Steps of Compression (Parallel Encoding Only)
+</p>
 
 We then tackle with the new bottleneck by parallelizing the histogram construction. To avoid communication between different threads, each thread will be assigned a chunk of input file. Then, each thread will run through their chunk of input file and count the frequency into a local histogram. After this step is done, we will add a barrier to synchronize all threads. Then, each thread will be responsible for merging part of global histogram. By using this two parallel steps, we achieve linear speedup for histogram generation. Figure 4 shows the time analysis with parallel encoding and parallel histogram generation. After we parallelize both steps, the compression distributions are quite similar as the number of threads increases. It shows that parallelizing both histogram construction and data encoding is the correct way to go.
-![](https://raw.githubusercontent.com/hzxa21/15618-FinalProject/master/result/PercentageOfTime.png)
 
-**Figure 4. Percentage of Time Spent On Steps of Compression (Parallel Encoding + Parallel Histogram)**
+<p align="center">
+  <img src="https://raw.githubusercontent.com/hzxa21/15618-FinalProject/master/result/PercentageOfTime.png" width="600">
+</p>
+<p align="center">
+  Figure 4. Percentage of Time Spent On Steps of Compression (Parallel Encoding + Parallel Histogram)
+</p>
 
 ### Parallelize Decompression
 As for the decompression. The first step is to read metadata from the file and build the Huffman Tree in memory. Then, start decoding the file by traversing the Huffman Tree based on compressed bits. After we run the sequential version, we found about 99% of time is spent on the second step. Thus, we focused on parallelizing the second step. Corresponding to the parallel encoding step, the parallel decoding will start by reading the chunk offset from the header. Then, each thread will start reading from input file at that offset. In this way, there is no communicating between threads, we are able to achieve linear speedup for decompression. 
@@ -48,26 +60,41 @@ During the development, we also tried to use ISPC to utilize SIMD unit. But ther
 ## Results
 We conduct evaluation on parallel huffman coding compression and decompression on three platforms: GHC Machine, Xeon Phi Co-processor, many-cores NUMA CPU.
 ### GHC Machine (Xeon E5-1660 v4 @ 3.20GHz, 8 Cores, 16 Threads)
-![](https://raw.githubusercontent.com/hzxa21/15618-FinalProject/master/result/GhcCompression.png)
-![](https://raw.githubusercontent.com/hzxa21/15618-FinalProject/master/result/GhcDecompression.png)
-
-**Figure 5. Speedup on parallel huffman compression and decompression versus the optimized sequential implementation (Xeon E5-1660)**
+<p align="center">
+  <img src="https://raw.githubusercontent.com/hzxa21/15618-FinalProject/master/result/GhcCompression.png)" width="600">
+</p>
+<p align="center">
+  <img src="https://raw.githubusercontent.com/hzxa21/15618-FinalProject/master/result/GhcDecompression.png" width="600">
+</p>
+<p align="center">
+  Figure 5. Speedup on parallel huffman compression and decompression versus the optimized sequential implementation (Xeon E5-1660)
+</p>
 
 We first runs Huffman compression and decompression using 500MB Wiki dataset on the GHC machines, which has 8 cores and 16 hardware threads. The result shows a linear speedup until 8 threads are used while there is little speedup from using 8 threads to 16 threads. This makes sense because there are only 8 physical cores in the machine and hyperthreading helps little when huffman compression and decompression are CPU bound.
 
 ### Xeon Phi (KNL) Co-processor (68 Cores, 256 Threads)
-![](https://raw.githubusercontent.com/hzxa21/15618-FinalProject/master/result/PhiCompression.png)
-![](https://raw.githubusercontent.com/hzxa21/15618-FinalProject/master/result/PhiDecompression.png)
-
-**Figure 6. Speedup on parallel huffman compression and decompression versus the optimized sequential implementation (Xeon Phi)**
+<p align="center">
+  <img src="https://raw.githubusercontent.com/hzxa21/15618-FinalProject/master/result/PhiCompression.png)" width="600">
+</p>
+<p align="center">
+  <img src="https://raw.githubusercontent.com/hzxa21/15618-FinalProject/master/result/PhiDecompression.png" width="600">
+</p>
+<p align="center">
+  Figure 6. Speedup on parallel huffman compression and decompression versus the optimized sequential implementation (Xeon Phi)
+</p>
 
 We then runs Huffman compression and decompression using 5.5GB Wiki dataset on Xeon Phi, which has 68 cores and 256 threads. The results are similar and our approaches can achieve linear speedup until we fully utilize all the physical cores and benefit little from hyperthreading.
 
 ### NUMA CPU (Xeon E5-2699 v4 @2.20GHz, 88 Cores, 4 Sockets, 88 Threads)
-![](https://raw.githubusercontent.com/hzxa21/15618-FinalProject/master/result/NUMACompression.png)
-![](https://raw.githubusercontent.com/hzxa21/15618-FinalProject/master/result/NUMADecompression.png)
-
-**Figure 7. Speedup on parallel huffman compression and decompression versus the optimized sequential implementation (Xeon E5-2699)**
+<p align="center">
+  <img src="https://raw.githubusercontent.com/hzxa21/15618-FinalProject/master/result/NUMACompression.png)" width="600">
+</p>
+<p align="center">
+  <img src="https://raw.githubusercontent.com/hzxa21/15618-FinalProject/master/result/NUMADecompression.png" width="600">
+</p>
+<p align="center">
+  Figure 7. Speedup on parallel huffman compression and decompression versus the optimized sequential implementation (Xeon E5-2699)
+</p>
 
 We also try to run our algorithm on a NUMA CPU, which has 88 cores and 4 sockets with each of the 22 cores placing in the same socket. We configure the CPU affinity policy of OpenMP such that threads are bound to cores according their thread ids. Here we are using the absolute value of the speedup instead of the log speedup because we want to see the behavior of placing threads across sockets. The result shows that when the threads are running in the same socket, the speedup trend is not affected. But when the threads are running across different sockets, we see almost no speedup (22 to 33 threads) or even slow down (77 to 88 threads). This is caused by interconnect traffics across sockets because we use the first thread to load the file into memory and this memory are allocated on the first socket only with the default first touch policy. We then further parallelize the file loading step to try to make memory allocated across sockets to reduce the interconnect traffics but we see little improvement. We think that in order to tackle with this problem, we may need to use NUMA-aware memory allocation system calls or enforce other NUM-aware memory allocation policies but since they are platform specific and the NUMA libraries are absent in the intel cluster, we find it hard to do further improvement on this issue.
 
