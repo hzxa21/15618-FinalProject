@@ -14,9 +14,12 @@ Huffman Coding Compression has four main steps:
 
 Initially, we use libhuffman as our starter sequential codes. libhuffman is a single-threaded pure C library and command line interface for Huffman Coding, released under a BSD license. We found it from [github and sourceforge](http://huffman.sourceforge.net/). We modified it to be using C++11 and change many inefficient components in it to make it as optimized as possible. We also read the entire files into memory before the compression and decompression starts to avoid being bottlenecked by disk bandwidth. Then, we use it as the baseline for our evaluation. After we running the sequential Huffman Coding on a 5.5 GB Wiki Dataset, we get the following graph.
 
-![](https://raw.githubusercontent.com/hzxa21/15618-FinalProject/master/result/Bottleneck.png)
+<p align="center">
+  <img src="https://raw.githubusercontent.com/hzxa21/15618-FinalProject/master/result/Bottleneck.png" width="400">
+</p>
+<center>Figure 1. Compression Time Component</center>
 
-**Figure 1. Compression Time Component**
+
 
 ### Parallelize Compression
 As we can see from the graph, 77.8% of the time is spent on encoding the input files. Thus, parallelizing encoding step becomes our first step. We are mainly using OpenMP to utilize the multi-core CPU and in the meantime to provide a clean interface without dealing with C++ Thread Library. Also, to avoid communication between threads, we divide the input file to equal size chunks and each thread will be working on their own chunk. When writing to the compressed file, we will precompute the size of compressed chunk each thread will produce. Then, use prefix sum to get the output offset so that each thread will know where they should write to. Those offset information will also be written to the front of compressed file as the metadata. The final compressed file will look like the following
